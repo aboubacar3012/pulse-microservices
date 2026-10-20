@@ -1,5 +1,9 @@
-# --- build ---
-FROM node:20-alpine AS build
+# Image finale toujours linux/amd64 (nodes K8s).
+# Le stage build tourne sur l’arch hôte ($BUILDPLATFORM) pour éviter
+# le crash esbuild sous QEMU quand on build depuis un Mac arm64.
+
+# --- build (natif Mac / Linux) ---
+FROM --platform=$BUILDPLATFORM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -8,8 +12,8 @@ ARG VITE_API_URL=http://localhost:3000
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
-# --- runtime ---
-FROM nginx:1.27-alpine
+# --- runtime (amd64) ---
+FROM --platform=linux/amd64 nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

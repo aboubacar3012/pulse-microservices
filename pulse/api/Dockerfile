@@ -1,11 +1,13 @@
+# Image toujours linux/amd64 (nodes K8s), même depuis un Mac arm64.
+
 # --- deps ---
-FROM node:20-alpine AS deps
+FROM --platform=linux/amd64 node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 # --- runtime ---
-FROM node:20-alpine
+FROM --platform=linux/amd64 node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 

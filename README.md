@@ -161,27 +161,40 @@ docker run -d --name pulse-result -p 8081:80 santu/pulse-result
 
 ## Déployer sur Kubernetes
 
-> **TEMP (build sur le serveur)** : voir [`pulse/README-TEMP-K8S.md`](pulse/README-TEMP-K8S.md) — images locales `santu/pulse-*:latest`, `imagePullPolicy: Never`.
-
 Le dossier [`pulse/k8s-specifications/`](pulse/k8s-specifications/) reprend le modèle de *example-voting-app* : un Deployment / Service YAML par composant.
 
-### 1. Construire les images locales
+> Les Dockerfiles forcent **`linux/amd64`** (runtime).  
+> Sur Mac, les frontends compilent Vite en natif (`$BUILDPLATFORM`) puis packagent nginx amd64 — évite le crash esbuild sous QEMU.
 
-Les frontends doivent pointer vers l’API exposée en NodePort `31002` (accessible via `localhost` sur Docker Desktop / Kind).
+### 1. Build & push (Docker Hub, amd64)
+
+Prérequis : `docker login` (ex. `aboubacar99`).
+
+Les frontends doivent pointer vers l’API exposée en NodePort `31002` (URL joignable depuis le navigateur).
 
 ```bash
 cd microservices/pulse
 
-docker build -t santu/pulse-api ./api
-docker build -t santu/pulse-worker ./worker
-docker build --build-arg VITE_API_URL=http://localhost:31002 -t santu/pulse-vote ./vote
-docker build --build-arg VITE_API_URL=http://localhost:31002 -t santu/pulse-result ./result
+# vote + result (URL API = NodePort)
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-vote --push ./vote
+
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-result --push ./result
+
+# api + worker
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-api --push ./api
+
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-worker --push ./worker
 ```
 
+Si l’API n’est pas sur `localhost` (accès distant au cluster), remplace par  
+`VITE_API_URL=http://IP_DU_SERVEUR:31002` puis rebuild vote + result.
 ### 2. Appliquer les manifests
+
+Les Deployments doivent référencer `aboubacar99/pulse-*` (et idéalement `imagePullPolicy: Always` ou `IfNotPresent` après un push).
 
 ```bash
 kubectl apply -f k8s-specifications/
+kubectl rollout restart deployment/api deployment/worker deployment/vote deployment/result
 ```
 
 | URL (NodePort)         | Service   |
@@ -197,6 +210,8 @@ kubectl delete -f k8s-specifications/
 ```
 
 Fichiers : `db`, `redis`, `api`, `worker`, `vote`, `result` (+ services). Worker n’a pas de Service (comme voting-app).
+
+> Alternative **build sur le serveur** (sans Docker Hub) : voir [`pulse/README-TEMP-K8S.md`](pulse/README-TEMP-K8S.md).
 
 ## Tester le flux complet
 
