@@ -16,32 +16,7 @@ Les utilisateurs votent pour leurs outils préférés :
 
 ## Architecture
 
-```
-                    ┌─────────────────┐
-                    │  pulse-vote     │  React + TypeScript (port 8080)
-                    │  santu/pulse-vote│
-                    └────────┬────────┘
-                             │ POST /vote { "tool": "jenkins" }
-                             ▼
-┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
-│ pulse-result │────►│  pulse-api      │────►│ pulse-redis  │
-│ lecture seule│ GET │  Node.js        │LPUSH│ redis:7      │
-│ :8081        │◄────│  santu/pulse-api│     └──────┬───────┘
-└──────────────┘     └────────┬────────┘            │ BRPOP
-                              │                     ▼
-                              │              ┌──────────────┐
-                              │              │ pulse-worker │
-                              │              │ Python       │
-                              │              │ santu/       │
-                              │              │ pulse-worker │
-                              │              └──────┬───────┘
-                              │                     │ INSERT
-                              │                     ▼
-                              │              ┌──────────────┐
-                              └─────────────►│ pulse-db     │
-                                SELECT       │ postgres:16  │
-                                             └──────────────┘
-```
+![Architecture Pulse Vote](./Pulse_Vote_Microservices_Architecture.png)
 
 | Service   | Image                | Rôle                                    | Code             |
 | --------- | -------------------- | --------------------------------------- | ---------------- |
