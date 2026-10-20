@@ -15,8 +15,8 @@ spec:
         app: vote
     spec:
       containers:
-        - image: aboubacar99/pulse-vote
-          imagePullPolicy: IfNotPresent
+        - image: santu/pulse-vote:latest
+          imagePullPolicy: Never
           name: vote
           ports:
             - containerPort: 80

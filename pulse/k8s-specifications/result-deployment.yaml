@@ -15,8 +15,8 @@ spec:
         app: result
     spec:
       containers:
-        - image: aboubacar99/pulse-result
-          imagePullPolicy: IfNotPresent
+        - image: santu/pulse-result:latest
+          imagePullPolicy: Never
           name: result
           ports:
             - containerPort: 80

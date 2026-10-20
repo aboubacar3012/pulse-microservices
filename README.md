@@ -161,6 +161,8 @@ docker run -d --name pulse-result -p 8081:80 santu/pulse-result
 
 ## Déployer sur Kubernetes
 
+> **TEMP (build sur le serveur)** : voir [`pulse/README-TEMP-K8S.md`](pulse/README-TEMP-K8S.md) — images locales `santu/pulse-*:latest`, `imagePullPolicy: Never`.
+
 Le dossier [`pulse/k8s-specifications/`](pulse/k8s-specifications/) reprend le modèle de *example-voting-app* : un Deployment / Service YAML par composant.
 
 ### 1. Construire les images locales

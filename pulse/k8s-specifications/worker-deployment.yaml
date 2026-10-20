@@ -15,8 +15,8 @@ spec:
         app: worker
     spec:
       containers:
-        - image: aboubacar99/pulse-worker
-          imagePullPolicy: IfNotPresent
+        - image: santu/pulse-worker:latest
+          imagePullPolicy: Never
           name: worker
           env:
             - name: REDIS_HOST
