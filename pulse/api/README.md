@@ -12,13 +12,13 @@ API REST de **Pulse** : accepte les votes publics et expose les résultats agré
 
 ## Variables d’environnement
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `PORT` | `3000` | Port HTTP |
-| `REDIS_HOST` | `localhost` | Hôte Redis |
-| `REDIS_PORT` | `6379` | Port Redis |
-| `DATABASE_URL` | `postgres://pulse:pulse@localhost:5432/pulse` | Connexion Postgres |
-| `SESSION_TTL_SEC` | `604800` | Durée de vie session Redis (7 j) |
+| Variable          | Défaut                                        | Description                      |
+| ----------------- | --------------------------------------------- | -------------------------------- |
+| `PORT`            | `3000`                                        | Port HTTP                        |
+| `REDIS_HOST`      | `localhost`                                   | Hôte Redis                       |
+| `REDIS_PORT`      | `6379`                                        | Port Redis                       |
+| `DATABASE_URL`    | `postgres://pulse:pulse@localhost:5432/pulse` | Connexion Postgres               |
+| `SESSION_TTL_SEC` | `604800`                                      | Durée de vie session Redis (7 j) |
 
 ## Build
 

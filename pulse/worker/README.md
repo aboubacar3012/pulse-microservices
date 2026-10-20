@@ -12,10 +12,10 @@ Aucun port exposé — process interne.
 
 ## Variables d’environnement
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `REDIS_HOST` | `localhost` | Hôte Redis |
-| `REDIS_PORT` | `6379` | Port Redis |
+| Variable       | Défaut                                        | Description        |
+| -------------- | --------------------------------------------- | ------------------ |
+| `REDIS_HOST`   | `localhost`                                   | Hôte Redis         |
+| `REDIS_PORT`   | `6379`                                        | Port Redis         |
 | `DATABASE_URL` | `postgres://pulse:pulse@localhost:5432/pulse` | Connexion Postgres |
 
 ## Build

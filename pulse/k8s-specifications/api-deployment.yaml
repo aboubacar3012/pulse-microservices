@@ -15,7 +15,7 @@ spec:
         app: api
     spec:
       containers:
-        - image: santu/pulse-api
+        - image: aboubacar99/pulse-api
           imagePullPolicy: IfNotPresent
           name: api
           env:

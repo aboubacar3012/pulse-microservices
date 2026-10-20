@@ -15,7 +15,7 @@ spec:
         app: worker
     spec:
       containers:
-        - image: santu/pulse-worker
+        - image: aboubacar99/pulse-worker
           imagePullPolicy: IfNotPresent
           name: worker
           env:

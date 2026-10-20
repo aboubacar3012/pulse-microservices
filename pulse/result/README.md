@@ -10,16 +10,14 @@ Frontend React + TypeScript d’**affichage** des résultats Pulse (lecture seul
 
 ## Variables de build
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
+| Variable       | Défaut                  | Description                            |
+| -------------- | ----------------------- | -------------------------------------- |
 | `VITE_API_URL` | `http://localhost:3000` | URL de l’API Pulse (injectée au build) |
 
 ## Build
 
 ```bash
-docker build \
-  --build-arg VITE_API_URL=http://localhost:3000 \
-  -t santu/pulse-result .
+docker build -t santu/pulse-result .
 ```
 
 ## Run

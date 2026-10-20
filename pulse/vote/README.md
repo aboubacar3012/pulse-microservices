@@ -10,16 +10,14 @@ Frontend React + TypeScript pour **voter** sur les outils DevOps (Pulse).
 
 ## Variables de build
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
+| Variable       | Défaut                  | Description                            |
+| -------------- | ----------------------- | -------------------------------------- |
 | `VITE_API_URL` | `http://localhost:3000` | URL de l’API Pulse (injectée au build) |
 
 ## Build
 
 ```bash
-docker build \
-  --build-arg VITE_API_URL=http://localhost:3000 \
-  -t santu/pulse-vote .
+docker build -t santu/pulse-vote .
 ```
 
 ## Run
