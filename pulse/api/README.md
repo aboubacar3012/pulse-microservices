@@ -4,7 +4,7 @@ API REST de **Pulse** : accepte les votes publics et expose les résultats agré
 
 ## Rôle
 
-- `POST /vote` — `{ tool, sessionId, action: "add"|"remove" }`
+- `POST /vote` — `{ tool, sessionId }`
 - `GET /session/:sessionId` — compteurs locaux du navigateur
 - `GET /results` — totaux globaux (`count` + `voters`) par outil
 - `GET /tools` — liste des outils DevOps autorisés

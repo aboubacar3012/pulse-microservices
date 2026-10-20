@@ -57,21 +57,11 @@ async function readSessionVotes(sessionId) {
   return votes;
 }
 
-async function adjustSessionVote(sessionId, tool, delta) {
+async function bumpSessionVote(sessionId, tool) {
   const key = sessionKey(sessionId);
-  if (delta < 0) {
-    const current = Number((await redis.hget(key, tool)) || 0);
-    if (current <= 0) {
-      return { ok: false, reason: "aucun vote à retirer" };
-    }
-  }
-  const count = await redis.hincrby(key, tool, delta);
-  if (count < 0) {
-    await redis.hset(key, tool, 0);
-    return { ok: false, reason: "aucun vote à retirer" };
-  }
+  const count = await redis.hincrby(key, tool, 1);
   await redis.expire(key, SESSION_TTL_SEC);
-  return { ok: true, count };
+  return count;
 }
 
 async function initDb() {
@@ -125,9 +115,6 @@ app.post("/vote", async (req, res) => {
   const sessionId = String(req.body?.sessionId || "")
     .trim()
     .toLowerCase();
-  const action = String(req.body?.action || "add")
-    .trim()
-    .toLowerCase();
 
   if (!TOOLS.includes(tool)) {
     return res.status(400).json({
@@ -140,22 +127,12 @@ app.post("/vote", async (req, res) => {
     return res.status(400).json({ error: "sessionId requis" });
   }
 
-  if (action !== "add" && action !== "remove") {
-    return res.status(400).json({ error: "action invalide (add|remove)" });
-  }
-
-  const delta = action === "add" ? 1 : -1;
-
   try {
-    const adjusted = await adjustSessionVote(sessionId, tool, delta);
-    if (!adjusted.ok) {
-      return res.status(409).json({ error: adjusted.reason });
-    }
-
     await redis.lpush(
       VOTES_QUEUE,
-      JSON.stringify({ tool, sessionId, action, ts: Date.now() })
+      JSON.stringify({ tool, sessionId, ts: Date.now() })
     );
+    await bumpSessionVote(sessionId, tool);
 
     const votes = await readSessionVotes(sessionId);
     const total = Object.values(votes).reduce((a, b) => a + b, 0);
@@ -163,7 +140,6 @@ app.post("/vote", async (req, res) => {
     return res.status(202).json({
       accepted: true,
       tool,
-      action,
       sessionId,
       sessionVotes: votes,
       sessionTotal: total,

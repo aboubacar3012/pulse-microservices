@@ -71,26 +71,31 @@ export default function App() {
 
       <main className="main">
         <section className="hero">
-          <p className="eyebrow">Total des votes</p>
-          <p className="total" aria-live="polite">
-            {total.toLocaleString("fr-FR")}
-          </p>
-          <p className="hero-meta">
+          <div className="hero-row">
+            <span className="eyebrow">Total des votes</span>
+            <span className="total" aria-live="polite">
+              {total.toLocaleString("fr-FR")}
+            </span>
+          </div>
+          <p className="hero-row meta">
             <span>
               {totalVoters.toLocaleString("fr-FR")} votant
               {totalVoters > 1 ? "s" : ""}
             </span>
+            <span className="sep" aria-hidden>
+              ·
+            </span>
+            <span>
+              {leader && leader.count > 0
+                ? `${LABELS[leader.tool] || leader.tool} en tête`
+                : "En attente"}
+            </span>
           </p>
-          <p className="lede">
-            {leader && leader.count > 0
-              ? `${LABELS[leader.tool] || leader.tool} en tête`
-              : "En attente des premiers votes"}
+          <p className="hero-row clock">
+            {updatedAt
+              ? `Mis à jour ${updatedAt.toLocaleTimeString("fr-FR")}`
+              : "—"}
           </p>
-          {updatedAt && (
-            <p className="clock">
-              Mis à jour {updatedAt.toLocaleTimeString("fr-FR")}
-            </p>
-          )}
         </section>
 
         {error && (

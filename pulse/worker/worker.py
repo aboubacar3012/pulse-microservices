@@ -81,45 +81,6 @@ def ensure_schema(conn) -> None:
         )
 
 
-def apply_vote(conn, tool: str, session_id: str | None, action: str) -> None:
-    with conn.cursor() as cur:
-        if action == "remove":
-            if session_id:
-                cur.execute(
-                    """
-                    DELETE FROM votes
-                    WHERE id = (
-                      SELECT id FROM votes
-                      WHERE tool = %s AND session_id = %s
-                      ORDER BY id DESC
-                      LIMIT 1
-                    )
-                    """,
-                    (tool, session_id),
-                )
-            else:
-                cur.execute(
-                    """
-                    DELETE FROM votes
-                    WHERE id = (
-                      SELECT id FROM votes
-                      WHERE tool = %s
-                      ORDER BY id DESC
-                      LIMIT 1
-                    )
-                    """,
-                    (tool,),
-                )
-            print(f"vote retiré: {tool}", flush=True)
-            return
-
-        cur.execute(
-            "INSERT INTO votes (tool, session_id) VALUES (%s, %s)",
-            (tool, session_id),
-        )
-        print(f"vote enregistré: {tool}", flush=True)
-
-
 def main() -> None:
     r = connect_redis()
     conn = connect_db()
@@ -139,15 +100,17 @@ def main() -> None:
             session_id = (
                 str(session_id).strip().lower() if session_id else None
             )
-            action = str(data.get("action", "add")).strip().lower()
-            if action not in {"add", "remove"}:
-                action = "add"
 
             if tool not in TOOLS:
                 print(f"outil ignoré: {tool!r}", flush=True)
                 continue
 
-            apply_vote(conn, tool, session_id, action)
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO votes (tool, session_id) VALUES (%s, %s)",
+                    (tool, session_id),
+                )
+            print(f"vote enregistré: {tool}", flush=True)
         except redis.RedisError as exc:
             print(f"erreur redis: {exc}", flush=True)
             time.sleep(2)

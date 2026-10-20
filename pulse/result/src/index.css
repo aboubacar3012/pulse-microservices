@@ -104,18 +104,31 @@ body {
 }
 
 .hero {
-  margin-bottom: 1.75rem;
-  padding: 1.5rem 1.35rem;
+  width: 100%;
+  margin-bottom: 1.15rem;
+  padding: 0.85rem 1rem;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: calc(var(--radius) + 4px);
+  border-radius: 14px;
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
   animation: fade-up 0.6s var(--ease) 0.05s both;
 }
 
+.hero-row {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
 .eyebrow {
-  margin: 0 0 0.35rem;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--muted);
   letter-spacing: 0.04em;
@@ -123,34 +136,34 @@ body {
 }
 
 .total {
-  margin: 0;
-  font-size: clamp(3rem, 10vw, 4.25rem);
+  font-size: clamp(1.55rem, 5vw, 1.9rem);
   font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
-.hero-meta {
-  margin: 0.55rem 0 0;
-  font-size: 0.95rem;
+.hero-row.meta {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--blue);
+  line-height: 1.35;
 }
 
-.lede {
-  margin: 0.85rem 0 0;
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: var(--ink);
-}
-
-.clock {
-  margin: 0.35rem 0 0;
-  font-size: 0.85rem;
+.hero-row.meta .sep {
   color: var(--muted);
   font-weight: 500;
+}
+
+.hero-row.clock {
+  justify-content: flex-start;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .banner {

@@ -6,7 +6,6 @@ import { TOOLS, TOOL_META, type Tool } from "./tools";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 type Toast = { id: number; ok: boolean; message: string } | null;
-type VoteAction = "add" | "remove";
 
 function emptyCounts(): Record<string, number> {
   return Object.fromEntries(TOOLS.map((t) => [t, 0]));
@@ -53,17 +52,16 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [justVoted]);
 
-  const changeVote = useCallback(
-    async (tool: Tool, action: VoteAction) => {
+  const vote = useCallback(
+    async (tool: Tool) => {
       if (pending || !sessionId) return;
-      if (action === "remove" && (localCounts[tool] || 0) <= 0) return;
 
       setPending(tool);
       try {
         const res = await fetch(`${API_URL}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tool, sessionId, action }),
+          body: JSON.stringify({ tool, sessionId }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -76,10 +74,7 @@ export default function App() {
           ? { ...emptyCounts(), ...body.sessionVotes }
           : {
               ...localCounts,
-              [tool]: Math.max(
-                0,
-                (localCounts[tool] || 0) + (action === "add" ? 1 : -1)
-              ),
+              [tool]: (localCounts[tool] || 0) + 1,
             };
         const next = votes[tool] || 0;
         setLocalCounts(votes);
@@ -87,7 +82,7 @@ export default function App() {
         setToast({
           id: Date.now(),
           ok: true,
-          message: `${TOOL_META[tool].label} · ${action === "add" ? "+1" : "−1"} (×${next})`,
+          message: `${TOOL_META[tool].label} · +1 (×${next})`,
         });
       } catch (err) {
         setToast({
@@ -122,8 +117,7 @@ export default function App() {
         <section className="intro">
           <h1>Vote pour tes outils.</h1>
           <p className="lede">
-            Ajoute ou retire des votes — autant de fois que tu veux, sur
-            plusieurs outils.
+            Vote autant de fois que tu veux, sur un ou plusieurs outils.
           </p>
         </section>
 
@@ -133,10 +127,11 @@ export default function App() {
             const mine = localCounts[tool] || 0;
             const isPending = pending === tool;
             const isFlash = justVoted === tool;
+            const busy = !ready || !!pending;
 
             return (
               <li key={tool}>
-                <div
+                <article
                   className={[
                     "tile",
                     isPending ? "is-pending" : "",
@@ -146,42 +141,35 @@ export default function App() {
                     .filter(Boolean)
                     .join(" ")}
                 >
-                  <div className="tile-head">
+                  <div className="tile-body">
                     <span className="icon-wrap">
                       <ToolIcon tool={tool} />
                     </span>
-                    {mine > 0 && <span className="count-chip">×{mine}</span>}
+                    <div className="tile-text">
+                      <span className="tile-name">{meta.label}</span>
+                      <span className="tile-blurb">{meta.blurb}</span>
+                    </div>
+                    {mine > 0 && (
+                      <span className="count-chip" aria-live="polite">
+                        ×{mine}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="tile-text">
-                    <span className="tile-name">{meta.label}</span>
-                    <span className="tile-blurb">{meta.blurb}</span>
-                  </div>
-
-                  <div className="controls">
-                    <button
-                      type="button"
-                      className="ctrl minus"
-                      disabled={!ready || !!pending || mine <= 0}
-                      onClick={() => changeVote(tool, "remove")}
-                      aria-label={`Retirer un vote pour ${meta.label}`}
-                    >
-                      −
-                    </button>
-                    <span className="ctrl-count" aria-live="polite">
-                      {mine}
-                    </span>
-                    <button
-                      type="button"
-                      className="ctrl plus"
-                      disabled={!ready || !!pending}
-                      onClick={() => changeVote(tool, "add")}
-                      aria-label={`Ajouter un vote pour ${meta.label}`}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
+                  <button
+                    type="button"
+                    className={`vote-primary ${mine > 0 ? "again" : ""}`}
+                    disabled={busy}
+                    onClick={() => vote(tool)}
+                    aria-label={
+                      mine > 0
+                        ? `Ajouter un autre vote pour ${meta.label}`
+                        : `Voter pour ${meta.label}`
+                    }
+                  >
+                    {isPending ? "…" : mine > 0 ? "Encore +1" : "Voter"}
+                  </button>
+                </article>
               </li>
             );
           })}
