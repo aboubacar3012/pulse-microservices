@@ -1,9 +1,12 @@
 # Santu Pulse — stack locale (style voting-app)
 # Usage : docker compose up --build
 #
-#   Vote     → http://localhost:8080
-#   Résultats→ http://localhost:8081
-#   API      → http://localhost:3000
+# DNS internes : api, redis, db (comme les Services K8s)
+# Frontends : /api → nginx → http://api:3000
+#
+#   Vote      → http://localhost:8080  (+ proxy /api)
+#   Résultats → http://localhost:8081  (+ proxy /api)
+#   API       → http://localhost:3000  (debug)
 
 services:
   redis:
@@ -71,7 +74,7 @@ services:
     build:
       context: ./vote
       args:
-        VITE_API_URL: http://localhost:3000
+        VITE_API_URL: /api
     image: santu/pulse-vote
     container_name: pulse-vote
     ports:
@@ -83,7 +86,7 @@ services:
     build:
       context: ./result
       args:
-        VITE_API_URL: http://localhost:3000
+        VITE_API_URL: /api
     image: santu/pulse-result
     container_name: pulse-result
     ports:

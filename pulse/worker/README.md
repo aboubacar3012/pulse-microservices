@@ -8,15 +8,15 @@ Worker Python de **Pulse** : lit la file Redis `votes` et écrit chaque vote dan
 - `INSERT` d’une ligne par vote (outil DevOps)
 - Reconnexion automatique à Redis / Postgres
 
-Aucun port exposé — process interne.
+Aucun port exposé — process **interne** uniquement (pas de Service K8s, comme voting-app).
 
 ## Variables d’environnement
 
-| Variable       | Défaut                                        | Description        |
-| -------------- | --------------------------------------------- | ------------------ |
-| `REDIS_HOST`   | `localhost`                                   | Hôte Redis         |
-| `REDIS_PORT`   | `6379`                                        | Port Redis         |
-| `DATABASE_URL` | `postgres://pulse:pulse@localhost:5432/pulse` | Connexion Postgres |
+| Variable       | Défaut (dev local)                            | En cluster / Compose |
+| -------------- | --------------------------------------------- | -------------------- |
+| `REDIS_HOST`   | `localhost`                                   | `redis`              |
+| `REDIS_PORT`   | `6379`                                        | `6379`               |
+| `DATABASE_URL` | `postgres://pulse:pulse@localhost:5432/pulse` | `...@db:5432/pulse`  |
 
 ## Build
 
@@ -27,14 +27,14 @@ docker build -t santu/pulse-worker .
 ## Run
 
 ```bash
-docker run -d --name pulse-worker --network pulse-net \
-  -e REDIS_HOST=pulse-redis \
-  -e DATABASE_URL=postgres://pulse:pulse@pulse-db:5432/pulse \
+docker run -d --name worker --network pulse-net \
+  -e REDIS_HOST=redis \
+  -e DATABASE_URL=postgres://pulse:pulse@db:5432/pulse \
   santu/pulse-worker
 ```
 
 ## Logs
 
 ```bash
-docker logs -f pulse-worker
+docker logs -f worker
 ```

@@ -3,7 +3,8 @@ import { ToolIcon } from "./ToolIcon";
 import { getOrCreateSessionId } from "./session";
 import { TOOLS, TOOL_META, type Tool } from "./tools";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Chemin relatif : nginx (vote) proxy /api → Service interne "api:3000"
+const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
 type Toast = { id: number; ok: boolean; message: string } | null;
 

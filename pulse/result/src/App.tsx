@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { ToolIcon } from "./ToolIcon";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Chemin relatif : nginx (result) proxy /api → Service interne "api:3000"
+const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 const POLL_MS = 2000;
 
 type ResultRow = { tool: string; count: number; voters: number };

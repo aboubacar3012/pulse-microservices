@@ -1,7 +1,7 @@
 # Santu Pulse — architecture microservices
 
 **Pulse** est une application de votes publics sur des outils DevOps.  
-Organisation : **Santu**. Lab pédagogique (Docker / plus tard Kubernetes).
+Organisation : **Santu**. Lab pédagogique (Docker / Kubernetes).
 
 ## Idée produit
 
@@ -27,13 +27,33 @@ Les utilisateurs votent pour leurs outils préférés :
 | Redis     | `redis:7-alpine`     | File de votes (`votes`)                 | image officielle |
 | Postgres  | `postgres:16-alpine` | Persistance des votes                   | image officielle |
 
+### Communication interne (Docker / Kubernetes)
+
+Toute la com. inter-services passe par les **noms DNS** (Service K8s ou service Compose) — pas d’URL externe :
+
+| Qui → Qui        | Hostname DNS |
+| ---------------- | ------------ |
+| vote/result → API | `api`       |
+| api / worker → Redis | `redis`  |
+| api / worker → Postgres | `db`  |
+
+```
+Navigateur → vote | result (ports exposés)
+                ↓  nginx /api/
+             Service "api" → redis · db
+             Worker        → redis · db
+```
+
+Les frontends appellent le chemin relatif `/api` ; nginx proxy vers `http://api:3000`.  
+Le navigateur ne parle jamais directement à Redis, Postgres ni au worker.
+
 Chaque microservice applicatif a son **Dockerfile** et son **README**.  
 Redis et Postgres n’ont **pas** de Dockerfile custom.
 
 ## Prérequis
 
 - Docker + Docker Compose
-- Ports libres : `3000` (API), `8080` (vote), `8081` (résultats)
+- Ports libres : `8080` (vote), `8081` (résultats) — `3000` optionnel (debug API)
 
 ## Démarrage rapide (docker compose)
 
@@ -44,11 +64,11 @@ cd microservices/pulse
 docker compose up --build
 ```
 
-| URL                   | Service   |
-| --------------------- | --------- |
-| http://localhost:8080 | Vote      |
-| http://localhost:8081 | Résultats |
-| http://localhost:3000 | API       |
+| URL                   | Service              |
+| --------------------- | -------------------- |
+| http://localhost:8080 | Vote (+ proxy `/api`) |
+| http://localhost:8081 | Résultats (+ proxy `/api`) |
+| http://localhost:3000 | API (debug uniquement) |
 
 Arrêt :
 
@@ -61,7 +81,8 @@ Le fichier : [`pulse/docker-compose.yml`](pulse/docker-compose.yml).
 
 ## Mise en place manuelle (sans compose)
 
-Utile pour comprendre le réseau Docker service par service.  
+Utile pour comprendre le réseau Docker. Les **noms de containers** doivent matcher les DNS (`api`, `redis`, `db`) pour que nginx et l’API résolvent correctement.
+
 Depuis la racine `microservices/`.
 
 ### 1. Réseau Docker
@@ -70,21 +91,16 @@ Depuis la racine `microservices/`.
 docker network create pulse-net
 ```
 
-### 2. Redis (image officielle)
+### 2. Redis
 
 ```bash
-docker run -d \
-  --name pulse-redis \
-  --network pulse-net \
-  redis:7-alpine
+docker run -d --name redis --network pulse-net redis:7-alpine
 ```
 
-### 3. Postgres (image officielle, config basique)
+### 3. Postgres
 
 ```bash
-docker run -d \
-  --name pulse-db \
-  --network pulse-net \
+docker run -d --name db --network pulse-net \
   -e POSTGRES_USER=pulse \
   -e POSTGRES_PASSWORD=pulse \
   -e POSTGRES_DB=pulse \
@@ -98,16 +114,11 @@ La table `votes` est créée automatiquement au démarrage de l’API ou du work
 ```bash
 docker build -t santu/pulse-api ./pulse/api
 
-docker run -d \
-  --name pulse-api \
-  --network pulse-net \
-  -p 3000:3000 \
-  -e REDIS_HOST=pulse-redis \
-  -e DATABASE_URL=postgres://pulse:pulse@pulse-db:5432/pulse \
+docker run -d --name api --network pulse-net -p 3000:3000 \
+  -e REDIS_HOST=redis \
+  -e DATABASE_URL=postgres://pulse:pulse@db:5432/pulse \
   santu/pulse-api
 ```
-
-Vérification :
 
 ```bash
 curl http://localhost:3000/health
@@ -119,45 +130,29 @@ curl http://localhost:3000/tools
 ```bash
 docker build -t santu/pulse-worker ./pulse/worker
 
-docker run -d \
-  --name pulse-worker \
-  --network pulse-net \
-  -e REDIS_HOST=pulse-redis \
-  -e DATABASE_URL=postgres://pulse:pulse@pulse-db:5432/pulse \
+docker run -d --name worker --network pulse-net \
+  -e REDIS_HOST=redis \
+  -e DATABASE_URL=postgres://pulse:pulse@db:5432/pulse \
   santu/pulse-worker
 ```
 
 ```bash
-docker logs -f pulse-worker
+docker logs -f worker
 ```
 
-### 6. Frontend vote
+### 6. Frontend vote / result
 
-`VITE_API_URL` est figée au **build** (URL joignable depuis le navigateur).
+Build avec `VITE_API_URL=/api` (défaut Dockerfile). nginx proxy vers le hostname `api`.
 
 ```bash
-docker build \
-  --build-arg VITE_API_URL=http://localhost:3000 \
-  -t santu/pulse-vote \
-  ./pulse/vote
+docker build -t santu/pulse-vote ./pulse/vote
+docker run -d --name vote --network pulse-net -p 8080:80 santu/pulse-vote
 
-docker run -d --name pulse-vote -p 8080:80 santu/pulse-vote
+docker build -t santu/pulse-result ./pulse/result
+docker run -d --name result --network pulse-net -p 8081:80 santu/pulse-result
 ```
 
-→ http://localhost:8080
-
-### 7. Frontend résultats
-
-```bash
-docker build \
-  --build-arg VITE_API_URL=http://localhost:3000 \
-  -t santu/pulse-result \
-  ./pulse/result
-
-docker run -d --name pulse-result -p 8081:80 santu/pulse-result
-```
-
-→ http://localhost:8081
+→ http://localhost:8080 · http://localhost:8081
 
 ## Déployer sur Kubernetes
 
@@ -166,42 +161,48 @@ Le dossier [`pulse/k8s-specifications/`](pulse/k8s-specifications/) reprend le m
 > Les Dockerfiles forcent **`linux/amd64`** (runtime).  
 > Sur Mac, les frontends compilent Vite en natif (`$BUILDPLATFORM`) puis packagent nginx amd64 — évite le crash esbuild sous QEMU.
 
+Les Services K8s s’appellent `api`, `redis`, `db`, `vote`, `result` — mêmes noms qu’en Compose.
+
 ### 1. Build & push (Docker Hub, amd64)
 
 Prérequis : `docker login` (ex. `aboubacar99`).
 
-Les frontends doivent pointer vers l’API exposée en NodePort `31002` (URL joignable depuis le navigateur).
-
 ```bash
 cd microservices/pulse
 
-# vote + result (URL API = NodePort)
-docker buildx build --platform linux/amd64 -t aboubacar99/pulse-vote --push ./vote
+docker buildx build --platform linux/amd64 \
+  -t aboubacar99/pulse-vote --push ./vote
 
-docker buildx build --platform linux/amd64 -t aboubacar99/pulse-result --push ./result
+docker buildx build --platform linux/amd64 \
+  -t aboubacar99/pulse-result --push ./result
 
-# api + worker
-docker buildx build --platform linux/amd64 -t aboubacar99/pulse-api --push ./api
+docker buildx build --platform linux/amd64 \
+  -t aboubacar99/pulse-api --push ./api
 
-docker buildx build --platform linux/amd64 -t aboubacar99/pulse-worker --push ./worker
+docker buildx build --platform linux/amd64 \
+  -t aboubacar99/pulse-worker --push ./worker
 ```
 
-Si l’API n’est pas sur `localhost` (accès distant au cluster), remplace par  
-`VITE_API_URL=http://IP_DU_SERVEUR:31002` puis rebuild vote + result.
 ### 2. Appliquer les manifests
-
-Les Deployments doivent référencer `aboubacar99/pulse-*` (et idéalement `imagePullPolicy: Always` ou `IfNotPresent` après un push).
 
 ```bash
 kubectl apply -f k8s-specifications/
 kubectl rollout restart deployment/api deployment/worker deployment/vote deployment/result
 ```
 
-| URL (NodePort)         | Service   |
-| ---------------------- | --------- |
-| http://localhost:31000 | Vote      |
-| http://localhost:31001 | Résultats |
-| http://localhost:31002 | API       |
+| URL (NodePort)         | Service                 |
+| ---------------------- | ----------------------- |
+| http://localhost:31000 | Vote (+ proxy `/api`)   |
+| http://localhost:31001 | Résultats (+ proxy `/api`) |
+| http://localhost:31002 | API (debug uniquement)  |
+
+Tester depuis le cluster (sans URL externe) :
+
+```bash
+kubectl exec -it deploy/vote -- wget -qO- http://api:3000/health
+kubectl exec -it deploy/api -- nc -zv redis 6379
+kubectl exec -it deploy/api -- nc -zv db 5432
+```
 
 ### 3. Supprimer
 
@@ -209,23 +210,26 @@ kubectl rollout restart deployment/api deployment/worker deployment/vote deploym
 kubectl delete -f k8s-specifications/
 ```
 
-Fichiers : `db`, `redis`, `api`, `worker`, `vote`, `result` (+ services). Worker n’a pas de Service (comme voting-app).
-
-> Alternative **build sur le serveur** (sans Docker Hub) : voir [`pulse/README-TEMP-K8S.md`](pulse/README-TEMP-K8S.md).
+Fichiers : `db`, `redis`, `api`, `worker`, `vote`, `result` (+ services).  
+Worker n’a pas de Service (comme voting-app).
 
 ## Tester le flux complet
 
-```bash
-# 3 votes Jenkins, 2 votes Docker
-curl -s -X POST http://localhost:3000/vote -H 'Content-Type: application/json' -d '{"tool":"jenkins"}'
-curl -s -X POST http://localhost:3000/vote -H 'Content-Type: application/json' -d '{"tool":"jenkins"}'
-curl -s -X POST http://localhost:3000/vote -H 'Content-Type: application/json' -d '{"tool":"jenkins"}'
-curl -s -X POST http://localhost:3000/vote -H 'Content-Type: application/json' -d '{"tool":"docker"}'
-curl -s -X POST http://localhost:3000/vote -H 'Content-Type: application/json' -d '{"tool":"docker"}'
+Via le proxy vote (comme le navigateur) ou l’API en debug :
 
-# Attendre ~1s que le worker traite la file
+```bash
+# Via vote (Compose) — même chemin que le frontend
+curl -s -X POST http://localhost:8080/api/vote \
+  -H 'Content-Type: application/json' \
+  -d '{"tool":"jenkins"}'
+
+# Ou API directe (debug)
+curl -s -X POST http://localhost:3000/vote \
+  -H 'Content-Type: application/json' \
+  -d '{"tool":"docker"}'
+
 sleep 1
-curl -s http://localhost:3000/results | python3 -m json.tool
+curl -s http://localhost:8080/api/results | python3 -m json.tool
 ```
 
 ## API (résumé)
@@ -237,10 +241,12 @@ curl -s http://localhost:3000/results | python3 -m json.tool
 | `POST`  | `/vote`    | Body `{ "tool": "aws" }` → `202`        |
 | `GET`   | `/results` | Totaux `{ results: [{ tool, count }] }` |
 
+Côté frontend : préfixe `/api` → nginx → mêmes chemins sur `api:3000`.
+
 ## Arrêt / nettoyage
 
 ```bash
-docker rm -f pulse-vote pulse-result pulse-api pulse-worker pulse-redis pulse-db
+docker rm -f vote result api worker redis db
 docker network rm pulse-net
 ```
 
@@ -266,7 +272,7 @@ microservices/
 
 ## Suite possible (hors scope actuel)
 
-- Ingress unique devant vote + result + api
+- Ingress unique devant vote + result
 - Déploiement EKS / storage persistant (PVC) pour Postgres
 - Cache Redis des totaux côté `GET /results`
 
