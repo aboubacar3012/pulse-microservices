@@ -1,0 +1,95 @@
+# Santu Pulse — stack locale (style voting-app)
+# Usage : docker compose up --build
+#
+#   Vote     → http://localhost:8080
+#   Résultats→ http://localhost:8081
+#   API      → http://localhost:3000
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: pulse-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  db:
+    image: postgres:16-alpine
+    container_name: pulse-db
+    environment:
+      POSTGRES_USER: pulse
+      POSTGRES_PASSWORD: pulse
+      POSTGRES_DB: pulse
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulse -d pulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./api
+    image: santu/pulse-api
+    container_name: pulse-api
+    environment:
+      PORT: "3000"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      DATABASE_URL: postgres://pulse:pulse@db:5432/pulse
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./worker
+    image: santu/pulse-worker
+    container_name: pulse-worker
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      DATABASE_URL: postgres://pulse:pulse@db:5432/pulse
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  vote:
+    build:
+      context: ./vote
+      args:
+        VITE_API_URL: http://localhost:3000
+    image: santu/pulse-vote
+    container_name: pulse-vote
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+  result:
+    build:
+      context: ./result
+      args:
+        VITE_API_URL: http://localhost:3000
+    image: santu/pulse-result
+    container_name: pulse-result
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
