@@ -31,25 +31,42 @@ Les utilisateurs votent pour leurs outils préférés :
 
 Toute la com. inter-services passe par les **noms DNS** (Service K8s ou service Compose) — pas d’URL externe :
 
-| Qui → Qui        | Hostname DNS |
-| ---------------- | ------------ |
-| vote/result → API | `api`       |
-| api / worker → Redis | `redis`  |
-| api / worker → Postgres | `db`  |
+| Qui → Qui             | Hostname DNS |
+| --------------------- | ------------ |
+| vote/result → API     | `api`        |
+| api / worker → Redis  | `redis`      |
+| api / worker → Postgres | `db`       |
 
 ```
-Navigateur → vote | result (ports exposés)
+Navigateur → vote | result (NodePort / ports exposés)
                 ↓  nginx /api/
-             Service "api" → redis · db
-             Worker        → redis · db
+             Service "api" (ClusterIP) → redis · db
+             Worker                    → redis · db
 ```
 
-Les frontends appellent le chemin relatif `/api` ; nginx proxy vers `http://api:3000`.  
-Le navigateur ne parle jamais directement à Redis, Postgres ni au worker.
+Le navigateur ne parle jamais directement à Redis, Postgres, le worker, ni (en K8s) à l’API.
+
+#### Pourquoi l’API est en ClusterIP (Kubernetes)
+
+Sur K8s, le Service `api` est de type **ClusterIP** : accessible **uniquement à l’intérieur** du cluster (`http://api:3000`).
+
+- Le navigateur **ne peut pas** résoudre le DNS interne `api` — ce nom n’existe que dans le réseau du cluster.
+- Si on exposait l’API en NodePort, il faudrait coller une URL publique (`IP:31002`, etc.) dans le frontend au build — contraire à une archi “services internes”.
+- Avec ClusterIP + proxy nginx : seuls **vote** et **result** sont publiés (NodePort). L’API reste privée ; les frontends y accèdent **depuis le pod**, pas depuis Internet.
+
+En Compose, le port `3000` peut rester mappé pour le debug local (`curl`) — ce n’est pas requis pour que les UIs fonctionnent.
+
+#### Rôle de `nginx.conf` (vote & result)
+
+Les images vote/result sont des **SPA statiques** servies par nginx (`nginx.conf` + fichiers Vite `dist/`). nginx a **deux rôles** :
+
+1. **Servir le frontend** — fichiers HTML/JS/CSS, `try_files` pour le routing React, endpoint `/healthz`.
+2. **Proxy reverse `/api` → `http://api:3000`** — le JS appelle `/api/vote`, `/api/results`, etc. sur le **même host** que l’UI. nginx, **dans** le réseau Docker/K8s, relaie vers le Service DNS `api`.
+
+Sans ce proxy, le navigateur devrait appeler l’API avec une URL externe — impossible avec une API ClusterIP.
 
 Chaque microservice applicatif a son **Dockerfile** et son **README**.  
 Redis et Postgres n’ont **pas** de Dockerfile custom.
-
 ## Prérequis
 
 - Docker + Docker Compose
@@ -190,18 +207,23 @@ kubectl apply -f k8s-specifications/
 kubectl rollout restart deployment/api deployment/worker deployment/vote deployment/result
 ```
 
-| URL (NodePort)         | Service                 |
-| ---------------------- | ----------------------- |
-| http://localhost:31000 | Vote (+ proxy `/api`)   |
+| URL (NodePort)         | Service                    |
+| ---------------------- | -------------------------- |
+| http://localhost:31000 | Vote (+ proxy `/api`)      |
 | http://localhost:31001 | Résultats (+ proxy `/api`) |
-| http://localhost:31002 | API (debug uniquement)  |
 
-Tester depuis le cluster (sans URL externe) :
+**API = ClusterIP** : pas de NodePort, pas d’accès Internet direct.  
+Les UIs appellent `/api/...` ; nginx (dans le pod vote/result) proxy vers `http://api:3000`. Voir [Communication interne](#communication-interne-docker--kubernetes).
 
 ```bash
+# Depuis un pod du cluster uniquement
 kubectl exec -it deploy/vote -- wget -qO- http://api:3000/health
 kubectl exec -it deploy/api -- nc -zv redis 6379
 kubectl exec -it deploy/api -- nc -zv db 5432
+
+# Depuis l’extérieur : via le proxy frontend
+curl -s http://localhost:31000/api/health
+curl -s http://localhost:31000/api/results
 ```
 
 ### 3. Supprimer

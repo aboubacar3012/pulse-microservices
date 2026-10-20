@@ -5,11 +5,10 @@ metadata:
     app: api
   name: api
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - name: "api-service"
       port: 3000
       targetPort: 3000
-      nodePort: 31002
   selector:
     app: api
