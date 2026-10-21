@@ -2,7 +2,6 @@ pipeline {
     agent any
     stages {
         stage('Build') {
-            withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
                 when {
                     anyOf {
                         changeset 'pulse/api/**'
@@ -11,12 +10,13 @@ pipeline {
                     }
                 }
                 steps {
-                    dir('pulse/api') {
-                        sh 'docker build -t aboubacar99/pulse-api:""$GIT_COMMIT"" .'
-                        sh 'docker push aboubacar99/pulse-api:""$GIT_COMMIT""'
+                    withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                        dir('pulse/api') {
+                            sh 'docker build -t aboubacar99/pulse-api:""$GIT_COMMIT"" .'
+                            sh 'docker push aboubacar99/pulse-api:""$GIT_COMMIT""'
+                        }
                     }
                 }
-            }
         }
     }
 }
