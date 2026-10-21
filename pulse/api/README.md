@@ -13,7 +13,7 @@ API REST de **Pulse** : accepte les votes publics et expose les résultats agré
 Joignable en interne sous le hostname DNS **`api`** (Service K8s / Compose).  
 Les frontends n’appellent pas l’API en URL externe : nginx (vote/result) proxy `/api` → `http://api:3000`.
 
-### Pourquoi ClusterIP sur Kubernetes updated
+### Pourquoi ClusterIP sur Kubernetes
 
 Le Service `api` est **ClusterIP** (pas NodePort) : pas d’exposition directe sur Internet.
 
