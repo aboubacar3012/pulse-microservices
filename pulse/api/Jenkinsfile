@@ -5,7 +5,6 @@ pipeline {
                 when {
                     anyOf {
                         changeset 'pulse/api/**'
-                        // utile au 1er build / rebuild manuel
                         buildingTag()
                     }
                 }
