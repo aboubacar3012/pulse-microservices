@@ -1,19 +1,22 @@
 pipeline {
-  agent any
-  stages {
-    stage('Build') {
-      when {
-        anyOf {
-          changeset "pulse/api/**"
-          // utile au 1er build / rebuild manuel
-          buildingTag()
+    agent any
+    stages {
+        stage('Build') {
+            withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                when {
+                    anyOf {
+                        changeset 'pulse/api/**'
+                        // utile au 1er build / rebuild manuel
+                        buildingTag()
+                    }
+                }
+                steps {
+                    dir('pulse/api') {
+                        sh 'docker build -t aboubacar99/pulse-api:""$GIT_COMMIT"" .'
+                        sh 'docker push aboubacar99/pulse-api:""$GIT_COMMIT""'
+                    }
+                }
+            }
         }
-      }
-      steps {
-        dir('pulse/api') {
-          sh 'docker build -t santu/pulse-api .'
-        }
-      }
     }
-  }
 }
