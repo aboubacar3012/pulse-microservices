@@ -1,0 +1,19 @@
+pipeline {
+  agent any
+  stages {
+    stage('Build') {
+      when {
+        anyOf {
+          changeset "microservices/pulse/api/**"
+          // utile au 1er build / rebuild manuel
+          buildingTag()
+        }
+      }
+      steps {
+        dir('microservices/pulse/api') {
+          sh 'docker build -t santu/pulse-api .'
+        }
+      }
+    }
+  }
+}
