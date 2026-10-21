@@ -13,7 +13,7 @@ API REST de **Pulse** : accepte les votes publics et expose les résultats agré
 Joignable en interne sous le hostname DNS **`api`** (Service K8s / Compose).  
 Les frontends n’appellent pas l’API en URL externe : nginx (vote/result) proxy `/api` → `http://api:3000`.
 
-### Pourquoi ClusterIP sur Kubernetes
+### Pourquoi ClusterIP sur Kubernetes updated
 
 Le Service `api` est **ClusterIP** (pas NodePort) : pas d’exposition directe sur Internet.
 
@@ -23,13 +23,13 @@ Le Service `api` est **ClusterIP** (pas NodePort) : pas d’exposition directe s
 
 ## Variables d’environnement
 
-| Variable          | Défaut (dev local)                            | En cluster / Compose        |
-| ----------------- | --------------------------------------------- | --------------------------- |
-| `PORT`            | `3000`                                        | `3000`                      |
-| `REDIS_HOST`      | `localhost`                                   | `redis`                     |
-| `REDIS_PORT`      | `6379`                                        | `6379`                      |
-| `DATABASE_URL`    | `postgres://pulse:pulse@localhost:5432/pulse` | `...@db:5432/pulse`         |
-| `SESSION_TTL_SEC` | `604800`                                      | `604800` (7 j)              |
+| Variable          | Défaut (dev local)                            | En cluster / Compose |
+| ----------------- | --------------------------------------------- | -------------------- |
+| `PORT`            | `3000`                                        | `3000`               |
+| `REDIS_HOST`      | `localhost`                                   | `redis`              |
+| `REDIS_PORT`      | `6379`                                        | `6379`               |
+| `DATABASE_URL`    | `postgres://pulse:pulse@localhost:5432/pulse` | `...@db:5432/pulse`  |
+| `SESSION_TTL_SEC` | `604800`                                      | `604800` (7 j)       |
 
 ## Build
 
