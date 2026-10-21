@@ -22,7 +22,7 @@ Le runtime de l’image n’est pas Node : c’est **nginx** qui sert le build V
 
 **Problème résolu :** le JS tourne dans le navigateur, qui ne connaît pas `api`. Sans proxy, il faudrait une URL publique vers l’API. Avec le proxy, le navigateur appelle `/api/...` sur result ; nginx (dans Docker/K8s) parle à l’API ClusterIP.
 
-## Variables de build
+## Variables de build updated
 
 | Variable       | Défaut | Description                          |
 | -------------- | ------ | ------------------------------------ |

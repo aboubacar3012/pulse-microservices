@@ -10,7 +10,7 @@ Worker Python de **Pulse** : lit la file Redis `votes` et écrit chaque vote dan
 
 Aucun port exposé — process **interne** uniquement (pas de Service K8s, comme voting-app).
 
-## Variables d’environnement
+## Variables d’environnement updated
 
 | Variable       | Défaut (dev local)                            | En cluster / Compose |
 | -------------- | --------------------------------------------- | -------------------- |
