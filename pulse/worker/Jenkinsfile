@@ -1,0 +1,21 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+                when {
+                    anyOf {
+                        changeset 'pulse/worker/**'
+                        buildingTag()
+                    }
+                }
+                steps {
+                    withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                        dir('pulse/worker') {
+                            sh 'docker build -t aboubacar99/pulse-worker:""$GIT_COMMIT"" .'
+                            sh 'docker push aboubacar99/pulse-worker:""$GIT_COMMIT""'
+                        }
+                    }
+                }
+        }
+    }
+}
