@@ -4,13 +4,13 @@ pipeline {
     stage('Build') {
       when {
         anyOf {
-          changeset "microservices/pulse/api/**"
+          changeset "pulse/api/**"
           // utile au 1er build / rebuild manuel
           buildingTag()
         }
       }
       steps {
-        dir('microservices/pulse/api') {
+        dir('pulse/api') {
           sh 'docker build -t santu/pulse-api .'
         }
       }
