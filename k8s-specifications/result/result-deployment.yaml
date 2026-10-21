@@ -15,7 +15,7 @@ spec:
         app: result
     spec:
       containers:
-        - image: aboubacar99/pulse-result:latest
+        - image: aboubacar99/pulse-result:4ae922f025c29284aaff22a7621cfba211ec9f27
           imagePullPolicy: Always
           name: result
           ports:
