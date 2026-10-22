@@ -1,12 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: vote-ingress
+  name: vote
   namespace: default
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls.certresolver: le-resolver
 spec:
+  ingressClassName: traefik
   rules:
     - host: vote.santu.io
       http:
