@@ -1,72 +1,30 @@
-# Santu Pulse — architecture microservices
+# Santu Pulse — mode d’emploi
 
-**Pulse** est une application de votes publics sur des outils DevOps.  
-Organisation : **Santu**. Lab pédagogique (Docker / Kubernetes).
+> **Rôle de ce fichier** : produit, démarrage local, tests, API, déploiement manuel.  
+> **Architecture lab** (infra hub & spoke, CI/CD, domaines, choix ClusterIP/nginx) → [`explication_de_larchitecture_du_lab.md`](./explication_de_larchitecture_du_lab.md).
+
+**Pulse** : votes publics sur des outils DevOps. Organisation **Santu**. Lab Docker / Kubernetes.
 
 ## Idée produit
 
-Les utilisateurs votent pour leurs outils préférés :
+Outils votables : `docker` · `ansible` · `kubernetes` · `linux` · `git` · `terraform` · `jenkins` · `aws`
 
-`docker` · `ansible` · `kubernetes` · `linux` · `git` · `terraform` · `jenkins` · `aws`
+- Plusieurs outils, votes cumulables (ex. Jenkins ×10)
+- Aucun enregistrement du votant — totaux globaux uniquement
+- Deux UIs : **voter** et **voir les résultats**
 
-- On peut voter pour **plusieurs outils**
-- On peut voter **plusieurs fois** le même outil (ex. Jenkins ×10, Docker ×30)
-- **Aucun enregistrement du votant** — votes publics, totaux globaux uniquement
-- Deux interfaces : une pour **voter**, une pour **voir les résultats**
+Schéma & détail des services : [architecture du lab](./explication_de_larchitecture_du_lab.md) · [`Pulse_Vote_Microservices_Architecture.png`](./Pulse_Vote_Microservices_Architecture.png)
 
-## Architecture
+| Service          | Code               | Image locale (Compose)                  |
+| ---------------- | ------------------ | --------------------------------------- |
+| Vote UI          | `pulse/vote/`      | `santu/pulse-vote`                      |
+| Result UI        | `pulse/result/`    | `santu/pulse-result`                    |
+| API              | `pulse/api/`       | `santu/pulse-api`                       |
+| Worker           | `pulse/worker/`    | `santu/pulse-worker`                    |
+| Redis / Postgres | images officielles | `redis:7-alpine` · `postgres:16-alpine` |
 
-![Architecture Pulse Vote](./Pulse_Vote_Microservices_Architecture.png)
+DNS internes (Compose & K8s) : `api`, `redis`, `db`. Les frontends appellent `/api` ; nginx proxy vers `http://api:3000`.
 
-| Service   | Image                | Rôle                                    | Code             |
-| --------- | -------------------- | --------------------------------------- | ---------------- |
-| Vote UI   | `santu/pulse-vote`   | Interface de vote                       | `pulse/vote/`    |
-| Result UI | `santu/pulse-result` | Affichage des scores                    | `pulse/result/`  |
-| API       | `santu/pulse-api`    | REST + enqueue Redis + lecture Postgres | `pulse/api/`     |
-| Worker    | `santu/pulse-worker` | Consomme Redis → écrit Postgres         | `pulse/worker/`  |
-| Redis     | `redis:7-alpine`     | File de votes (`votes`)                 | image officielle |
-| Postgres  | `postgres:16-alpine` | Persistance des votes                   | image officielle |
-
-### Communication interne (Docker / Kubernetes)
-
-Toute la com. inter-services passe par les **noms DNS** (Service K8s ou service Compose) — pas d’URL externe :
-
-| Qui → Qui             | Hostname DNS |
-| --------------------- | ------------ |
-| vote/result → API     | `api`        |
-| api / worker → Redis  | `redis`      |
-| api / worker → Postgres | `db`       |
-
-```
-Navigateur → vote | result (NodePort / ports exposés)
-                ↓  nginx /api/
-             Service "api" (ClusterIP) → redis · db
-             Worker                    → redis · db
-```
-
-Le navigateur ne parle jamais directement à Redis, Postgres, le worker, ni (en K8s) à l’API.
-
-#### Pourquoi l’API est en ClusterIP (Kubernetes)
-
-Sur K8s, le Service `api` est de type **ClusterIP** : accessible **uniquement à l’intérieur** du cluster (`http://api:3000`).
-
-- Le navigateur **ne peut pas** résoudre le DNS interne `api` — ce nom n’existe que dans le réseau du cluster.
-- Si on exposait l’API en NodePort, il faudrait coller une URL publique (`IP:31002`, etc.) dans le frontend au build — contraire à une archi “services internes”.
-- Avec ClusterIP + proxy nginx : seuls **vote** et **result** sont publiés (NodePort). L’API reste privée ; les frontends y accèdent **depuis le pod**, pas depuis Internet.
-
-En Compose, le port `3000` peut rester mappé pour le debug local (`curl`) — ce n’est pas requis pour que les UIs fonctionnent.
-
-#### Rôle de `nginx.conf` (vote & result)
-
-Les images vote/result sont des **SPA statiques** servies par nginx (`nginx.conf` + fichiers Vite `dist/`). nginx a **deux rôles** :
-
-1. **Servir le frontend** — fichiers HTML/JS/CSS, `try_files` pour le routing React, endpoint `/healthz`.
-2. **Proxy reverse `/api` → `http://api:3000`** — le JS appelle `/api/vote`, `/api/results`, etc. sur le **même host** que l’UI. nginx, **dans** le réseau Docker/K8s, relaie vers le Service DNS `api`.
-
-Sans ce proxy, le navigateur devrait appeler l’API avec une URL externe — impossible avec une API ClusterIP.
-
-Chaque microservice applicatif a son **Dockerfile** et son **README**.  
-Redis et Postgres n’ont **pas** de Dockerfile custom.
 ## Prérequis
 
 - Docker + Docker Compose
@@ -74,94 +32,53 @@ Redis et Postgres n’ont **pas** de Dockerfile custom.
 
 ## Démarrage rapide (docker compose)
 
-Comme voting-app : un seul fichier dans `pulse/`.
-
 ```bash
 cd microservices/pulse
 docker compose up --build
 ```
 
-| URL                   | Service              |
-| --------------------- | -------------------- |
-| http://localhost:8080 | Vote (+ proxy `/api`) |
+| URL                   | Service                    |
+| --------------------- | -------------------------- |
+| http://localhost:8080 | Vote (+ proxy `/api`)      |
 | http://localhost:8081 | Résultats (+ proxy `/api`) |
-| http://localhost:3000 | API (debug uniquement) |
-
-Arrêt :
+| http://localhost:3000 | API (debug uniquement)     |
 
 ```bash
 docker compose down
 # + volume Postgres : docker compose down -v
 ```
 
-Le fichier : [`pulse/docker-compose.yml`](pulse/docker-compose.yml).
+Fichier : [`pulse/docker-compose.yml`](pulse/docker-compose.yml).
 
 ## Mise en place manuelle (sans compose)
 
-Utile pour comprendre le réseau Docker. Les **noms de containers** doivent matcher les DNS (`api`, `redis`, `db`) pour que nginx et l’API résolvent correctement.
+Utile pour comprendre le réseau Docker. Les **noms de containers** doivent matcher les DNS (`api`, `redis`, `db`).
 
-Depuis la racine `microservices/`.
-
-### 1. Réseau Docker
+Depuis la racine `microservices/` :
 
 ```bash
 docker network create pulse-net
-```
 
-### 2. Redis
-
-```bash
 docker run -d --name redis --network pulse-net redis:7-alpine
-```
 
-### 3. Postgres
-
-```bash
 docker run -d --name db --network pulse-net \
   -e POSTGRES_USER=pulse \
   -e POSTGRES_PASSWORD=pulse \
   -e POSTGRES_DB=pulse \
   postgres:16-alpine
-```
 
-La table `votes` est créée automatiquement au démarrage de l’API ou du worker.
-
-### 4. API
-
-```bash
 docker build -t santu/pulse-api ./pulse/api
-
 docker run -d --name api --network pulse-net -p 3000:3000 \
   -e REDIS_HOST=redis \
   -e DATABASE_URL=postgres://pulse:pulse@db:5432/pulse \
   santu/pulse-api
-```
 
-```bash
-curl http://localhost:3000/health
-curl http://localhost:3000/tools
-```
-
-### 5. Worker
-
-```bash
 docker build -t santu/pulse-worker ./pulse/worker
-
 docker run -d --name worker --network pulse-net \
   -e REDIS_HOST=redis \
   -e DATABASE_URL=postgres://pulse:pulse@db:5432/pulse \
   santu/pulse-worker
-```
 
-```bash
-docker logs -f worker
-```
-
-### 6. Frontend vote / result
-
-Build avec `VITE_API_URL=/api` (défaut Dockerfile). nginx proxy vers le hostname `api`.
-
-```bash
 docker build -t santu/pulse-vote ./pulse/vote
 docker run -d --name vote --network pulse-net -p 8080:80 santu/pulse-vote
 
@@ -171,33 +88,24 @@ docker run -d --name result --network pulse-net -p 8081:80 santu/pulse-result
 
 → http://localhost:8080 · http://localhost:8081
 
-## Déployer sur Kubernetes
+La table `votes` est créée au démarrage de l’API ou du worker.
 
-Le dossier [`pulse/k8s-specifications/`](pulse/k8s-specifications/) reprend le modèle de *example-voting-app* : un Deployment / Service YAML par composant.
+## Déployer sur Kubernetes (manuel)
 
-> Les Dockerfiles forcent **`linux/amd64`** (runtime).  
-> Sur Mac, les frontends compilent Vite en natif (`$BUILDPLATFORM`) puis packagent nginx amd64 — évite le crash esbuild sous QEMU.
+Manifests : [`k8s-specifications/`](k8s-specifications/) (en lab, synchronisés aussi via Argo CD — voir [architecture](./explication_de_larchitecture_du_lab.md)).
 
-Les Services K8s s’appellent `api`, `redis`, `db`, `vote`, `result` — mêmes noms qu’en Compose.
+> Les Dockerfiles forcent **`linux/amd64`**. Sur Mac, Vite compile en natif (`$BUILDPLATFORM`) puis nginx est packagé amd64.
 
-### 1. Build & push (Docker Hub, amd64)
-
-Prérequis : `docker login` (ex. `aboubacar99`).
+### 1. Build & push (Docker Hub)
 
 ```bash
 cd microservices/pulse
+docker login   # ex. aboubacar99
 
-docker buildx build --platform linux/amd64 \
-  -t aboubacar99/pulse-vote --push ./vote
-
-docker buildx build --platform linux/amd64 \
-  -t aboubacar99/pulse-result --push ./result
-
-docker buildx build --platform linux/amd64 \
-  -t aboubacar99/pulse-api --push ./api
-
-docker buildx build --platform linux/amd64 \
-  -t aboubacar99/pulse-worker --push ./worker
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-vote --push ./vote
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-result --push ./result
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-api --push ./api
+docker buildx build --platform linux/amd64 -t aboubacar99/pulse-worker --push ./worker
 ```
 
 ### 2. Appliquer les manifests
@@ -212,16 +120,13 @@ kubectl rollout restart deployment/api deployment/worker deployment/vote deploym
 | http://localhost:31000 | Vote (+ proxy `/api`)      |
 | http://localhost:31001 | Résultats (+ proxy `/api`) |
 
-**API = ClusterIP** : pas de NodePort, pas d’accès Internet direct.  
-Les UIs appellent `/api/...` ; nginx (dans le pod vote/result) proxy vers `http://api:3000`. Voir [Communication interne](#communication-interne-docker--kubernetes).
-
 ```bash
-# Depuis un pod du cluster uniquement
+# Depuis un pod
 kubectl exec -it deploy/vote -- wget -qO- http://api:3000/health
 kubectl exec -it deploy/api -- nc -zv redis 6379
 kubectl exec -it deploy/api -- nc -zv db 5432
 
-# Depuis l’extérieur : via le proxy frontend
+# Depuis l’extérieur (via proxy frontend)
 curl -s http://localhost:31000/api/health
 curl -s http://localhost:31000/api/results
 ```
@@ -232,15 +137,9 @@ curl -s http://localhost:31000/api/results
 kubectl delete -f k8s-specifications/
 ```
 
-Fichiers : `db`, `redis`, `api`, `worker`, `vote`, `result` (+ services).  
-Worker n’a pas de Service (comme voting-app).
-
 ## Tester le flux complet
 
-Via le proxy vote (comme le navigateur) ou l’API en debug :
-
 ```bash
-# Via vote (Compose) — même chemin que le frontend
 curl -s -X POST http://localhost:8080/api/vote \
   -H 'Content-Type: application/json' \
   -d '{"tool":"jenkins"}'
@@ -270,33 +169,8 @@ Côté frontend : préfixe `/api` → nginx → mêmes chemins sur `api:3000`.
 ```bash
 docker rm -f vote result api worker redis db
 docker network rm pulse-net
-```
-
-Pour aussi supprimer les images :
-
-```bash
 docker rmi santu/pulse-vote santu/pulse-result santu/pulse-api santu/pulse-worker
 ```
-
-## Structure du dépôt
-
-```
-microservices/
-├── README.md                 ← ce fichier
-└── pulse/
-    ├── docker-compose.yml    # stack complète (style voting-app)
-    ├── k8s-specifications/   # manifests K8s (style voting-app)
-    ├── api/                  # Node.js + Dockerfile
-    ├── worker/               # Python + Dockerfile
-    ├── vote/                 # React/TS vote + Dockerfile
-    └── result/               # React/TS résultats + Dockerfile
-```
-
-## Suite possible (hors scope actuel)
-
-- Ingress unique devant vote + result
-- Déploiement EKS / storage persistant (PVC) pour Postgres
-- Cache Redis des totaux côté `GET /results`
 
 ## Docs par service
 
@@ -304,3 +178,9 @@ microservices/
 - [pulse/worker/README.md](pulse/worker/README.md)
 - [pulse/vote/README.md](pulse/vote/README.md)
 - [pulse/result/README.md](pulse/result/README.md)
+
+## Suite possible
+
+- Ingress unique devant vote + result
+- PVC pour Postgres / déploiement EKS
+- Cache Redis des totaux côté `GET /results`
