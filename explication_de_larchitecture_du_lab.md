@@ -208,3 +208,13 @@ Pour le détail produit, API et commandes locales : voir [`README.md`](./README.
 ajout:
 pour une approche devsecops:
 dans la CI:talisman: j'ai mis en place cela avec un pre-commit. cela permet ......
+DevSecOps / Kubernetes — Freelance
+Nojyk · Avril 2026 – Octobre 2026
+
+Refonte de la chaîne CI/CD, GitOps et DevSecOps : migration AWS EKS vers cluster Kubernetes sur bare metal OVH, avec optimisation des coûts cloud (~2 500 € → ~500 € / mois).
+
+- utilisation des serveurs bar metal loué sur ovh un control plane et 3 workers et un serveur hub pour heberger Jenkins, ArgoCD et Grafana
+- Installation, Configuration et Securisation des serveurs Avec Ansible (tools network, ufw, fail2ban, gestion d'utilisateurs)
+- utilisation de talisman pour ..., mutation tests pour ..., sonarqube SAST, TRIVY, DAST
+- utilisation de jenkins pour la CI ... et grafana et prometheus pour ....
+- mise en place de ArgoCD

@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: result-ingress
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls.certresolver: le-resolver
+spec:
+  rules:
+    - host: result.santu.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: result
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - result.santu.io
