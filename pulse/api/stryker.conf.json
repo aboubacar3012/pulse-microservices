@@ -1,0 +1,16 @@
+{
+    "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+    "testRunner": "jest",
+    "coverageAnalysis": "perTest",
+    "mutate": ["src/**/*.js"],
+    "jest": {
+      "projectType": "custom",
+      "configFile": "package.json",
+      "enableFindRelatedTests": true
+    },
+    "reporters": ["html", "clear-text", "progress"],
+    "htmlReporter": {
+      "fileName": "reports/mutation/mutation.html"
+    },
+    "timeoutMS": 60000
+  }

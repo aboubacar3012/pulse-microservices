@@ -33,6 +33,34 @@ pipeline {
                 }
             }
         }
+
+        stage('Mutation Tests - Stryker') {
+            when {
+                anyOf {
+                    changeset 'pulse/api/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                dir('pulse/api') {
+                    sh 'npm ci'
+                    sh 'npm run test:mutation'
+                }
+            }
+            post {
+                always {
+                    publishHTML target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'pulse/api/reports/mutation',
+                reportFiles: 'mutation.html',
+                reportName: 'Stryker Mutation Report'
+            ]
+                }
+            }
+        }
+
         stage('Build') {
             when {
                 anyOf {
