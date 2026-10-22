@@ -17,7 +17,11 @@ pipeline {
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'pulse/api/coverage/junit.xml'
-                    cobertura coberturaReportFile: 'pulse/api/coverage/cobertura-coverage.xml'
+                    recordCoverage(
+                        tools: [[parser: 'COBERTURA', pattern: 'pulse/api/coverage/cobertura-coverage.xml']],
+                        id: 'api-coverage',
+                        name: 'API Coverage'
+                    )
                     publishHTML target: [
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
