@@ -18,7 +18,7 @@ spec:
               service:
                 name: result
                 port:
-                  number: 80
+                  number: 8081
   tls:
     - hosts:
         - result.santu.io
