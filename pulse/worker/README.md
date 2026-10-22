@@ -5,18 +5,51 @@ Worker Python de **Pulse** : lit la file Redis `votes` et écrit chaque vote dan
 ## Rôle
 
 - `BRPOP` sur la file `votes`
-- `INSERT` d’une ligne par vote (outil DevOps)
+- `INSERT` d’une ligne par vote (outil DevOps + `session_id`)
 - Reconnexion automatique à Redis / Postgres
 
 Aucun port exposé — process **interne** uniquement (pas de Service K8s, comme voting-app).
 
-## Variables d’environnement updated
+## Variables d’environnement
 
 | Variable       | Défaut (dev local)                            | En cluster / Compose |
 | -------------- | --------------------------------------------- | -------------------- |
 | `REDIS_HOST`   | `localhost`                                   | `redis`              |
 | `REDIS_PORT`   | `6379`                                        | `6379`               |
 | `DATABASE_URL` | `postgres://pulse:pulse@localhost:5432/pulse` | `...@db:5432/pulse`  |
+
+## Tests
+
+Les tests unitaires (`test_worker.py`) importent `worker.py`, qui dépend de `psycopg2` et `redis`.  
+Il faut donc un **venv** avec les deps — pas le `pytest` global du système (sinon `ModuleNotFoundError: psycopg2`).
+
+Depuis ce dossier (`pulse/worker`) :
+
+```bash
+cd pulse/worker
+
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+
+pytest -q
+```
+
+Relancer plus tard (venv déjà créé) :
+
+```bash
+cd pulse/worker
+source .venv/bin/activate
+pytest -q
+```
+
+Depuis la racine `microservices/` :
+
+```bash
+pulse/worker/.venv/bin/pytest -q pulse/worker
+```
+
+`.venv/` est ignoré par git (`pulse/.gitignore`).
 
 ## Build
 

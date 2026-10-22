@@ -31,6 +31,15 @@ Le Service `api` est **ClusterIP** (pas NodePort) : pas d’exposition directe s
 | `DATABASE_URL`    | `postgres://pulse:pulse@localhost:5432/pulse` | `...@db:5432/pulse`  |
 | `SESSION_TTL_SEC` | `604800`                                      | `604800` (7 j)       |
 
+## Tests
+
+```bash
+npm ci
+npm test
+```
+
+Jest + SuperTest, Redis/Postgres mockés (pas besoin de services locaux).
+
 ## Build
 
 ```bash

@@ -207,7 +207,18 @@ async function start() {
   });
 }
 
-start().catch((err) => {
-  console.error("démarrage impossible:", err);
-  process.exit(1);
-});
+if (require.main === module) {
+  start().catch((err) => {
+    console.error("démarrage impossible:", err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  app,
+  TOOLS,
+  SESSION_ID_RE,
+  sessionKey,
+  emptySessionVotes,
+  start,
+};

@@ -28,6 +28,15 @@ Le runtime de l’image n’est pas Node : c’est **nginx** qui sert le build V
 | -------------- | ------ | ------------------------------------ |
 | `VITE_API_URL` | `/api` | Préfixe API (proxy nginx → `api:3000`) |
 
+## Tests
+
+```bash
+npm ci
+npm test
+```
+
+Vitest + Testing Library (jsdom).
+
 ## Build
 
 ```bash

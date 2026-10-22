@@ -137,17 +137,33 @@ curl -s http://localhost:31000/api/results
 kubectl delete -f k8s-specifications/
 ```
 
+## Tests unitaires
+
+```bash
+# API (Jest + mocks Redis/Postgres)
+cd pulse/api && npm ci && npm test
+
+# Worker (pytest)
+cd pulse/worker && pip install -r requirements-dev.txt && pytest -q
+
+# Frontends (Vitest)
+cd pulse/vote && npm ci && npm test
+cd pulse/result && npm ci && npm test
+```
+
 ## Tester le flux complet
 
 ```bash
+SID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+
 curl -s -X POST http://localhost:8080/api/vote \
   -H 'Content-Type: application/json' \
-  -d '{"tool":"jenkins"}'
+  -d "{\"tool\":\"jenkins\",\"sessionId\":\"$SID\"}"
 
 # Ou API directe (debug)
 curl -s -X POST http://localhost:3000/vote \
   -H 'Content-Type: application/json' \
-  -d '{"tool":"docker"}'
+  -d "{\"tool\":\"docker\",\"sessionId\":\"$SID\"}"
 
 sleep 1
 curl -s http://localhost:8080/api/results | python3 -m json.tool
@@ -159,8 +175,8 @@ curl -s http://localhost:8080/api/results | python3 -m json.tool
 | ------- | ---------- | --------------------------------------- |
 | `GET`   | `/health`  | Santé                                   |
 | `GET`   | `/tools`   | Liste des outils autorisés              |
-| `POST`  | `/vote`    | Body `{ "tool": "aws" }` → `202`        |
-| `GET`   | `/results` | Totaux `{ results: [{ tool, count }] }` |
+| `POST`  | `/vote`    | Body `{ "tool", "sessionId" }` → `202`  |
+| `GET`   | `/results` | Totaux `{ results, totalVotes, totalVoters }` |
 
 Côté frontend : préfixe `/api` → nginx → mêmes chemins sur `api:3000`.
 

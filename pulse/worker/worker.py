@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from typing import Any
 
 import psycopg2
 import redis
@@ -81,6 +82,59 @@ def ensure_schema(conn) -> None:
         )
 
 
+def normalize_session_id(raw: Any) -> str | None:
+    if raw is None:
+        return None
+    value = str(raw).strip().lower()
+    return value or None
+
+
+def parse_vote_payload(payload: str) -> tuple[str, str | None] | None:
+    """Parse un message Redis. Retourne (tool, session_id) ou None si invalide."""
+    try:
+        data = json.loads(payload)
+    except (TypeError, json.JSONDecodeError):
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    tool = str(data.get("tool", "")).strip().lower()
+    if tool not in TOOLS:
+        return None
+
+    session_id = normalize_session_id(
+        data.get("sessionId") or data.get("session_id")
+    )
+    return tool, session_id
+
+
+def persist_vote(conn, tool: str, session_id: str | None) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO votes (tool, session_id) VALUES (%s, %s)",
+            (tool, session_id),
+        )
+
+
+def process_queue_item(conn, payload: str) -> bool:
+    """Traite un payload. True si un vote a été persisté."""
+    parsed = parse_vote_payload(payload)
+    if parsed is None:
+        tool_preview = ""
+        try:
+            tool_preview = str(json.loads(payload).get("tool", ""))
+        except Exception:  # noqa: BLE001
+            tool_preview = repr(payload)[:80]
+        print(f"outil ignoré: {tool_preview!r}", flush=True)
+        return False
+
+    tool, session_id = parsed
+    persist_vote(conn, tool, session_id)
+    print(f"vote enregistré: {tool}", flush=True)
+    return True
+
+
 def main() -> None:
     r = connect_redis()
     conn = connect_db()
@@ -94,23 +148,7 @@ def main() -> None:
                 continue
 
             _, payload = item
-            data = json.loads(payload)
-            tool = str(data.get("tool", "")).strip().lower()
-            session_id = data.get("sessionId") or data.get("session_id")
-            session_id = (
-                str(session_id).strip().lower() if session_id else None
-            )
-
-            if tool not in TOOLS:
-                print(f"outil ignoré: {tool!r}", flush=True)
-                continue
-
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO votes (tool, session_id) VALUES (%s, %s)",
-                    (tool, session_id),
-                )
-            print(f"vote enregistré: {tool}", flush=True)
+            process_queue_item(conn, payload)
         except redis.RedisError as exc:
             print(f"erreur redis: {exc}", flush=True)
             time.sleep(2)
