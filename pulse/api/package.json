@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "test": "jest --runInBand",
-    "test:coverage": "jest --runInBand --coverage"
+    "test:coverage": "jest --runInBand --coverage --ci --reporters=default --reporters=jest-junit"
   },
   "engines": {
     "node": ">=20"
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
     "supertest": "^7.0.0"
   },
   "jest": {
@@ -34,7 +35,12 @@
     "coverageReporters": [
       "text",
       "lcov",
-      "html"
+      "html",
+      "cobertura"
     ]
+  },
+  "jest-junit": {
+    "outputDirectory": "coverage",
+    "outputName": "junit.xml"
   }
 }

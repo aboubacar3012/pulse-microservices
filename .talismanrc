@@ -3,4 +3,6 @@ fileignoreconfig:
   checksum: d07fdf5fb249aa0b62001e422ce387b41b86d5acc0ea6cd415d6def46d41f97d
 - filename: pulse/vote/package-lock.json
   checksum: 998b0334df63992f6daf3d357509bca2270d1fb003342cb04149add592eb5aec
+- filename: pulse/api/package-lock.json
+  checksum: de27db1179754c11943583e5d1b7ec418d78eb6ae50132b7725db5a10ef0a4c6
 version: "1.0"

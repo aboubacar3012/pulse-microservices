@@ -1,21 +1,49 @@
 pipeline {
     agent any
     stages {
+        stage('Unit Tests and Coverage Jest') {
+            when {
+                anyOf {
+                    changeset 'pulse/api/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                dir('pulse/api') {
+                    sh 'npm ci'
+                    sh 'npm run test:coverage'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'pulse/api/coverage/junit.xml'
+                    cobertura coberturaReportFile: 'pulse/api/coverage/cobertura-coverage.xml'
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'pulse/api/coverage',
+                        reportFiles: 'index.html',
+                        reportName: 'Jest Coverage Report'
+                    ]
+                }
+            }
+        }
         stage('Build') {
-                when {
-                    anyOf {
-                        changeset 'pulse/api/**'
-                        buildingTag()
+            when {
+                anyOf {
+                    changeset 'pulse/api/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                    dir('pulse/api') {
+                        sh 'docker build -t aboubacar99/pulse-api:""$GIT_COMMIT"" .'
+                        sh 'docker push aboubacar99/pulse-api:""$GIT_COMMIT""'
                     }
                 }
-                steps {
-                    withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
-                        dir('pulse/api') {
-                            sh 'docker build -t aboubacar99/pulse-api:""$GIT_COMMIT"" .'
-                            sh 'docker push aboubacar99/pulse-api:""$GIT_COMMIT""'
-                        }
-                    }
-                }
+            }
         }
     }
 }

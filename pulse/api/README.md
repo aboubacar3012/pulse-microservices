@@ -41,7 +41,14 @@ npm run test:coverage
 
 Jest + SuperTest, Redis/Postgres mockés (pas besoin de services locaux).
 
-Rapport de couverture : terminal + `coverage/lcov.info` + `coverage/index.html` (ouvrir dans le navigateur).
+Rapports générés dans `coverage/` :
+
+| Fichier                  | Usage                                             |
+| ------------------------ | ------------------------------------------------- |
+| `index.html`             | Rapport HTML (navigateur / Jenkins `publishHTML`) |
+| `lcov.info`              | LCOV                                              |
+| `cobertura-coverage.xml` | Cobertura (Jenkins)                               |
+| `junit.xml`              | Résultats de tests (Jenkins `junit`)              |
 
 ## Build
 
