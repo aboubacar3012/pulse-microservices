@@ -21,7 +21,18 @@ jest.mock("pg", () => ({
   })),
 }));
 
-const { app, TOOLS, SESSION_ID_RE, sessionKey, emptySessionVotes } = require("../src/index");
+const {
+  app,
+  TOOLS,
+  SESSION_ID_RE,
+  sessionKey,
+  emptySessionVotes,
+  redisRetryStrategy,
+  readSessionVotes,
+  initDb,
+  start,
+  bootstrap,
+} = require("../src/index");
 
 describe("helpers", () => {
   test("sessionKey préfixe l'id", () => {
@@ -40,6 +51,133 @@ describe("helpers", () => {
     expect(SESSION_ID_RE.test("550e8400-e29b-11d4-a716-446655440000")).toBe(
       false
     );
+  });
+
+  test("redisRetryStrategy borne le backoff", () => {
+    expect(redisRetryStrategy(1)).toBe(200);
+    expect(redisRetryStrategy(10)).toBe(2000);
+    expect(redisRetryStrategy(100)).toBe(3000);
+  });
+
+  test("readSessionVotes ignore les valeurs non numériques", async () => {
+    mockRedis.hgetall.mockResolvedValue({
+      docker: "3",
+      jenkins: "NaN",
+      git: "oops",
+    });
+
+    const votes = await readSessionVotes(VALID_SESSION);
+    expect(votes.docker).toBe(3);
+    expect(votes.jenkins).toBe(0);
+    expect(votes.git).toBe(0);
+  });
+});
+
+describe("initDb / start / bootstrap", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("initDb exécute le schéma SQL", async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    await initDb();
+    expect(mockQuery).toHaveBeenCalledTimes(4);
+    expect(mockQuery.mock.calls[0][0]).toMatch(/CREATE TABLE IF NOT EXISTS votes/i);
+    expect(mockQuery.mock.calls[1][0]).toMatch(/session_id/i);
+    expect(mockQuery.mock.calls[2][0]).toMatch(/idx_votes_tool/i);
+    expect(mockQuery.mock.calls[3][0]).toMatch(/idx_votes_session/i);
+  });
+
+  test("start initialise la DB puis écoute le port", async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    const listenSpy = jest
+      .spyOn(app, "listen")
+      .mockImplementation((_port, cb) => {
+        if (typeof cb === "function") cb();
+        return { close: jest.fn() };
+      });
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    await start();
+
+    expect(mockQuery).toHaveBeenCalled();
+    expect(listenSpy).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Function)
+    );
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/santu-pulse-api écoute/)
+    );
+  });
+
+  test("start réessaie si Postgres est indisponible puis démarre", async () => {
+    jest.useFakeTimers();
+    mockQuery
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+      .mockResolvedValue({ rows: [] });
+
+    const listenSpy = jest
+      .spyOn(app, "listen")
+      .mockImplementation((_port, cb) => {
+        if (typeof cb === "function") cb();
+        return { close: jest.fn() };
+      });
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(console, "log").mockImplementation(() => {});
+
+    const pending = start();
+    await jest.advanceTimersByTimeAsync(2000);
+    await pending;
+
+    expect(listenSpy).toHaveBeenCalled();
+    expect(mockQuery.mock.calls.length).toBeGreaterThanOrEqual(5);
+  });
+
+  test("start échoue après 30 tentatives", async () => {
+    jest.useFakeTimers();
+    mockQuery.mockRejectedValue(new Error("toujours down"));
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(app, "listen").mockImplementation(() => ({ close: jest.fn() }));
+
+    const pending = start();
+    const expectation = expect(pending).rejects.toThrow("toujours down");
+    await jest.advanceTimersByTimeAsync(30 * 2000);
+    await expectation;
+  });
+
+  test("bootstrap quitte le process si start échoue", async () => {
+    mockQuery.mockRejectedValue(new Error("fatal"));
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    const exitSpy = jest.spyOn(process, "exit").mockImplementation(() => {});
+
+    // Forcer un échec immédiat (1ère tentative = dernière via mock de boucle trop long)
+    // On mocke start via le chemin réel avec fake timers + 30 fails serait long ;
+    // ici on appelle bootstrap après avoir fait échouer initDb 30 fois rapidement.
+    jest.useFakeTimers();
+    const pending = bootstrap();
+    await jest.advanceTimersByTimeAsync(30 * 2000);
+    await pending;
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  test("bootstrap démarre correctement", async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    jest.spyOn(app, "listen").mockImplementation((_port, cb) => {
+      if (typeof cb === "function") cb();
+      return { close: jest.fn() };
+    });
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    const exitSpy = jest.spyOn(process, "exit").mockImplementation(() => {});
+
+    await bootstrap();
+    expect(exitSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -118,6 +256,15 @@ describe("POST /vote", () => {
     expect(mockRedis.lpush).not.toHaveBeenCalled();
   });
 
+  test("rejette un body sans outil", async () => {
+    const res = await request(app)
+      .post("/vote")
+      .send({ sessionId: VALID_SESSION });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("outil invalide");
+  });
+
   test("exige un sessionId valide", async () => {
     const res = await request(app)
       .post("/vote")
@@ -152,6 +299,7 @@ describe("POST /vote", () => {
       "jenkins",
       1
     );
+    expect(mockRedis.expire).toHaveBeenCalled();
   });
 
   test("répond 503 si la file Redis est indisponible", async () => {
@@ -193,6 +341,17 @@ describe("GET /results", () => {
     const git = res.body.results.find((r) => r.tool === "git");
     expect(docker).toEqual({ tool: "docker", count: 5, voters: 2 });
     expect(git).toEqual({ tool: "git", count: 0, voters: 0 });
+  });
+
+  test("totalVoters vaut 0 si aucune ligne votants", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app).get("/results");
+    expect(res.status).toBe(200);
+    expect(res.body.totalVotes).toBe(0);
+    expect(res.body.totalVoters).toBe(0);
   });
 
   test("répond 503 si Postgres échoue", async () => {

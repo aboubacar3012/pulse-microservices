@@ -29,12 +29,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+function redisRetryStrategy(times) {
+  return Math.min(times * 200, 3000);
+}
+
 const redis = new Redis({
   host: REDIS_HOST,
   port: REDIS_PORT,
   maxRetriesPerRequest: null,
   enableReadyCheck: true,
-  retryStrategy: (times) => Math.min(times * 200, 3000),
+  retryStrategy: redisRetryStrategy,
 });
 
 const pool = new Pool({ connectionString: DATABASE_URL });
@@ -207,11 +211,17 @@ async function start() {
   });
 }
 
-if (require.main === module) {
-  start().catch((err) => {
+async function bootstrap() {
+  try {
+    await start();
+  } catch (err) {
     console.error("démarrage impossible:", err);
     process.exit(1);
-  });
+  }
+}
+
+if (require.main === module) {
+  bootstrap();
 }
 
 module.exports = {
@@ -220,5 +230,9 @@ module.exports = {
   SESSION_ID_RE,
   sessionKey,
   emptySessionVotes,
+  redisRetryStrategy,
+  readSessionVotes,
+  initDb,
   start,
+  bootstrap,
 };

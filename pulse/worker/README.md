@@ -33,6 +33,7 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 
 pytest -q
+pytest --cov=worker --cov-report=term-missing --cov-report=html --cov-report=lcov
 ```
 
 Relancer plus tard (venv déjà créé) :
@@ -41,15 +42,21 @@ Relancer plus tard (venv déjà créé) :
 cd pulse/worker
 source .venv/bin/activate
 pytest -q
+pytest --cov=worker --cov-report=term-missing --cov-report=html --cov-report=lcov
 ```
 
 Depuis la racine `microservices/` :
 
 ```bash
 pulse/worker/.venv/bin/pytest -q pulse/worker
+pulse/worker/.venv/bin/pytest --cov=worker --cov-report=term-missing \
+  --cov-report=html:pulse/worker/htmlcov \
+  --cov-report=lcov:pulse/worker/coverage.lcov \
+  pulse/worker
 ```
 
-`.venv/` est ignoré par git (`pulse/.gitignore`).
+Rapport HTML : `htmlcov/index.html`.  
+`.venv/`, `htmlcov/`, `.coverage` et `coverage/` sont ignorés par git.
 
 ## Build
 

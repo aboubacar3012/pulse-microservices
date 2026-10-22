@@ -36,9 +36,12 @@ Le Service `api` est **ClusterIP** (pas NodePort) : pas d’exposition directe s
 ```bash
 npm ci
 npm test
+npm run test:coverage
 ```
 
 Jest + SuperTest, Redis/Postgres mockés (pas besoin de services locaux).
+
+Rapport de couverture : terminal + `coverage/lcov.info` + `coverage/index.html` (ouvrir dans le navigateur).
 
 ## Build
 

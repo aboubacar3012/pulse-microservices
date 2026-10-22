@@ -33,9 +33,12 @@ Le runtime de l’image n’est pas Node : c’est **nginx** qui sert le build V
 ```bash
 npm ci
 npm test
+npm run test:coverage
 ```
 
-Vitest + Testing Library (jsdom).
+Vitest + Testing Library (jsdom). Couverture via `@vitest/coverage-v8`.
+
+Rapport : terminal + `coverage/lcov.info` + `coverage/index.html`.
 
 ## Build
 

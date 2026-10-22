@@ -4,3 +4,8 @@
 **/*.pyc
 **/__pycache__/
 **/.venv/
+**/coverage/
+**/htmlcov/
+**/.coverage
+**/.coverage.*
+**/coverage.xml

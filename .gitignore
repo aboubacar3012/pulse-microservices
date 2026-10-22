@@ -1,3 +1,9 @@
 .kube/config
 **/.venv/
 **/.pytest_cache/
+**/coverage/
+**/htmlcov/
+**/.coverage
+**/.coverage.*
+**/coverage.xml
+**/coverage.lcov

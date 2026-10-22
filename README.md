@@ -137,18 +137,26 @@ curl -s http://localhost:31000/api/results
 kubectl delete -f k8s-specifications/
 ```
 
-## Tests unitaires
+## Tests unitaires & couverture
+
+Pas de Java → pas de JaCoCo. Équivalent par stack : Jest / Vitest (v8) / pytest-cov.
 
 ```bash
 # API (Jest + mocks Redis/Postgres)
 cd pulse/api && npm ci && npm test
+npm run test:coverage          # → coverage/index.html
 
-# Worker (pytest)
-cd pulse/worker && pip install -r requirements-dev.txt && pytest -q
+# Worker (pytest + pytest-cov, via venv)
+cd pulse/worker
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+pytest -q
+pytest --cov=worker --cov-report=term-missing --cov-report=html --cov-report=lcov
+# → htmlcov/index.html
 
-# Frontends (Vitest)
-cd pulse/vote && npm ci && npm test
-cd pulse/result && npm ci && npm test
+# Frontends (Vitest + @vitest/coverage-v8)
+cd pulse/vote && npm ci && npm test && npm run test:coverage
+cd pulse/result && npm ci && npm test && npm run test:coverage
 ```
 
 ## Tester le flux complet
