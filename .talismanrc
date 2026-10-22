@@ -1,0 +1,4 @@
+fileignoreconfig:
+- filename: .filename
+  checksum: 4ef93cb8d84b0a36d91cf5c83f7ff1dd1a47409f559383e2c077b15cae50971e
+version: "1.0"

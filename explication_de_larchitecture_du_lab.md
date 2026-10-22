@@ -200,3 +200,11 @@ microservices/
 ```
 
 Pour le détail produit, API et commandes locales : voir [`README.md`](./README.md).
+
+
+
+
+
+ajout:
+pour une approche devsecops:
+dans la CI:talisman: j'ai mis en place cela avec un pre-commit. cela permet ......
