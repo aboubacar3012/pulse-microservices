@@ -13,7 +13,7 @@ API REST de **Pulse** : accepte les votes publics et expose les résultats agré
 Joignable en interne sous le hostname DNS **`api`** (Service K8s / Compose).  
 Les frontends n’appellent pas l’API en URL externe : nginx (vote/result) proxy `/api` → `http://api:3000`.
 
-### Pourquoi ClusterIP sur Kubernetes updated
+### Pourquoi ClusterIP sur Kubernetes
 
 Le Service `api` est **ClusterIP** (pas NodePort) : pas d’exposition directe sur Internet.
 
@@ -49,6 +49,47 @@ Rapports générés dans `coverage/` :
 | `lcov.info`              | LCOV                                              |
 | `cobertura-coverage.xml` | Cobertura (Jenkins)                               |
 | `junit.xml`              | Résultats de tests (Jenkins `junit`)              |
+
+## SonarQube (SAST)
+
+Analyse statique via le scanner npm **`@sonar/scan`**. Config projet : [`sonar-project.properties`](./sonar-project.properties).
+
+| Propriété | Valeur |
+| --------- | ------ |
+| `sonar.projectKey` | `Pulse-Microservices` |
+| `sonar.sources` | `src` |
+| `sonar.tests` | `tests` |
+| `sonar.javascript.lcov.reportPaths` | `coverage/lcov.info` |
+
+### En local
+
+1. Générer la couverture (LCOV lu par Sonar) :
+```bash
+npm ci
+npm run test:coverage
+```
+
+2. Lancer le scan (token **jamais** commités — variable d’env ou credential) :
+```bash
+export SONAR_TOKEN=...          # token généré dans SonarQube
+export SONAR_HOST_URL=http://<host>:9000
+
+npx sonar \
+  -Dsonar.host.url="$SONAR_HOST_URL" \
+  -Dsonar.token="$SONAR_TOKEN" \
+  -Dsonar.projectKey=Pulse-Microservices
+```
+
+Équivalent npm : `npm run test:sonar` (lit aussi `sonar-project.properties` ; il faut quand même fournir host + token).
+
+### Dans Jenkins
+
+Stage `SonarQube` du [`jenkinsfile`](./jenkinsfile) :
+
+1. `npm ci` + `npm run test:coverage` → produit `coverage/lcov.info`
+2. `withCredentials` (`sonar-token`) + `npx sonar` avec `sonar.host.url`, `sonar.token`, `sonar.projectKey`
+
+Le secret est stocké dans Jenkins (**Credentials** → `sonar-token`), pas dans le dépôt.
 
 ## Build
 

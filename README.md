@@ -208,3 +208,10 @@ docker rmi santu/pulse-vote santu/pulse-result santu/pulse-api santu/pulse-worke
 - Ingress unique devant vote + result
 - PVC pour Postgres / déploiement EKS
 - Cache Redis des totaux côté `GET /results`
+
+
+ici on va rajouter l'installation de sonarqube sur le server hub
+faire:
+docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest
+
+sur le server hub: mettre le host:9000 pour acceder a sonarqube avec les default credential: admin admin

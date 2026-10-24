@@ -34,7 +34,34 @@ pipeline {
             }
         }
 
-        stage('Mutation Tests - Stryker') {
+        // stage('Mutation Tests - Stryker') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/api/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         dir('pulse/api') {
+        //             sh 'npm ci'
+        //             sh 'npm run test:mutation'
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             publishHTML target: [
+        //                 allowMissing: true,
+        //                 alwaysLinkToLastBuild: true,
+        //                 keepAll: true,
+        //                 reportDir: 'pulse/api/reports/mutation',
+        //                 reportFiles: 'mutation.html',
+        //                 reportName: 'Stryker Mutation Report'
+        //             ]
+        //         }
+        //     }
+        // }
+
+        stage('SonarQube') {
             when {
                 anyOf {
                     changeset 'pulse/api/**'
@@ -44,19 +71,15 @@ pipeline {
             steps {
                 dir('pulse/api') {
                     sh 'npm ci'
-                    sh 'npm run test:mutation'
-                }
-            }
-            post {
-                always {
-                    publishHTML target: [
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'pulse/api/reports/mutation',
-                        reportFiles: 'mutation.html',
-                        reportName: 'Stryker Mutation Report'
-                    ]
+                    sh 'npm run test:coverage'   // génère coverage/lcov.info pour Sonar
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                  npx sonar \
+                    -Dsonar.host.url=http://184.193.180.126:9000 \
+                    -Dsonar.token=$SONAR_TOKEN \
+                    -Dsonar.projectKey=Pulse-Microservices
+                '''
+                    }
                 }
             }
         }
