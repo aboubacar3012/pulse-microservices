@@ -9,7 +9,7 @@
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage --ci --reporters=default --reporters=jest-junit",
     "test:mutation": "stryker run",
-    "test:sonar": "sonar"
+    "test:sonar": "sonar-scanner-npm"
   },
   "engines": {
     "node": ">=20"

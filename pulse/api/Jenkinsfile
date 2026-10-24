@@ -74,11 +74,11 @@ pipeline {
                     sh 'npm run test:coverage'   // génère coverage/lcov.info pour Sonar
                     withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                         sh '''
-                  npx sonar \
-                    -Dsonar.host.url=http://184.193.180.126:9000 \
-                    -Dsonar.token=$SONAR_TOKEN \
-                    -Dsonar.projectKey=Pulse-Microservices
-                '''
+                    npx sonar-scanner-npm \
+                        -Dsonar.host.url=http://184.193.180.126:9000 \
+                        -Dsonar.token=$SONAR_TOKEN \
+                        -Dsonar.projectKey=Pulse-Microservices
+                    '''
                     }
                 }
             }
