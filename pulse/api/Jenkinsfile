@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        BASE_IMAGE      = 'node:20-alpine'
         DOCKER_REGISTRY = 'aboubacar99'
         APP_NAME        = 'pulse-api'
         DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${GIT_COMMIT}"
@@ -104,10 +105,6 @@ pipeline {
                         dir('pulse/api') {
                             sh 'npm ci'
                             sh 'npm audit --audit-level=high --omit=dev'
-                            sh '''
-                                docker run --rm -v "$PWD:/app" aquasec/trivy:latest \
-                                    fs --scanners vuln --severity HIGH,CRITICAL /app
-                            '''
                         // withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
                         //     sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
                         // }
@@ -116,7 +113,7 @@ pipeline {
 
                     'Trivy Scan': {
                         dir('pulse/api') {
-                            sh "bash trivy-docker-image-scan.sh ${DOCKER_IMAGE}"
+                            sh "bash trivy-docker-image-scan.sh ${BASE_IMAGE}"
                         }
                     },
                 )

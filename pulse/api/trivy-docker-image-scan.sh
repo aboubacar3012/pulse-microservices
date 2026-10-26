@@ -1,10 +1,14 @@
 #!/bin/bash
+set -euo pipefail
 
-dockerImageName=$1
-echo $dockerImageName
+BASE_IMAGE=$1
 
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:/root/.cache/ aquasec/trivy:0.17.2 -q image --exit-code 0 --severity HIGH --light $dockerImageName
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:/root/.cache/ aquasec/trivy:0.17.2 -q image --exit-code 1 --severity CRITICAL --light $dockerImageName
+echo "=== Trivy config (Dockerfile) ==="
+docker run --rm -v "$PWD:/app" aquasec/trivy:latest config --severity HIGH,CRITICAL --exit-code 1 /app/Dockerfile
+
+echo "=== Trivy image (base $BASE_IMAGE) ==="
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity HIGH,CRITICAL --exit-code 1 "$BASE_IMAGE"
+
     # Trivy scan result processing
     exit_code=$?
     echo "Exit Code : $exit_code"
