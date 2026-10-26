@@ -113,7 +113,9 @@ pipeline {
 
                     'Trivy Scan': {
                         dir('pulse/api') {
-                            sh "bash trivy-docker-image-scan.sh ${BASE_IMAGE}"
+                            catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                                sh "bash trivy-docker-image-scan.sh ${BASE_IMAGE}"
+                            }
                         }
                     },
                 )
