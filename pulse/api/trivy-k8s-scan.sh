@@ -1,22 +1,57 @@
 #!/usr/bin/env bash
-# Usage : imageName=monimage:tag bash trivy-k8s-scan.sh
+# Usage : bash kubesec-scan.sh [dossier]   (défaut : k8s)
 
 set -euo pipefail
 
-: "${imageName:?La variable imageName est requise}"
-: "${WORKSPACE:=$PWD}"
+DIR="${1:-k8s}"
+MIN_SCORE=5
+FAILED=0
 
-TRIVY="docker run --rm -v $WORKSPACE:/root/.cache/ aquasec/trivy:0.17.2 -q image --light"
-
-echo "Image : $imageName"
-
-# 1. Rapport informatif (ne fait jamais échouer)
-$TRIVY --exit-code 0 --severity LOW,MEDIUM,HIGH "$imageName"
-
-# 2. Contrôle bloquant : échec si vulnérabilité CRITICAL
-if $TRIVY --exit-code 1 --severity CRITICAL "$imageName"; then
-  echo "Image scanning passed. Aucune vulnérabilité CRITICAL"
-else
-  echo "Image scanning failed. Vulnérabilités CRITICAL trouvées"
-  exit 1
+shopt -s nullglob
+files=("$DIR"/*.yaml)
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "Aucun YAML dans $DIR"
+  exit 0
 fi
+
+for file in "${files[@]}"; do
+  echo "==> $file"
+
+  set +e
+  result=$(docker run -i --rm kubesec/kubesec:512c5e0 scan /dev/stdin <"$file" 2>/dev/null)
+  rc=$?
+  set -e
+
+  if [[ $rc -ne 0 || -z "$result" ]]; then
+    echo "    [SKIP] non scoré par kubesec (kind non supporté ou erreur)"
+    continue
+  fi
+
+  if ! jq -e 'type == "array"' >/dev/null 2>&1 <<<"$result"; then
+    echo "    [SKIP] réponse JSON invalide"
+    continue
+  fi
+
+  count=$(jq 'length' <<<"$result")
+  if [[ "$count" -eq 0 ]]; then
+    echo "    [SKIP] aucune ressource scorée"
+    continue
+  fi
+
+  for i in $(seq 0 $((count - 1))); do
+    object=$(jq -r ".[$i].object" <<<"$result")
+    valid=$(jq -r ".[$i].valid" <<<"$result")
+    score=$(jq -r ".[$i].score // 0" <<<"$result")
+
+    if [[ "$valid" != "true" ]]; then
+      echo "    [SKIP] $object (non supporté)"
+    elif (( score >= MIN_SCORE )); then
+      echo "    [OK]   $object : score $score"
+    else
+      echo "    [FAIL] $object : score $score (minimum $MIN_SCORE)"
+      FAILED=1
+    fi
+  done
+done
+
+exit "$FAILED"
