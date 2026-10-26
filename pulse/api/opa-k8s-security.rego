@@ -258,7 +258,7 @@ warn contains msg if {
 }
 
 # ------------------------------------------------------------
-# METADATA (toutes ressources)
+# --- METADATA (toutes ressources) 
 # ------------------------------------------------------------
 
 deny contains msg if {
