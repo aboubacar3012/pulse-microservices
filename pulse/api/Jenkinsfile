@@ -96,9 +96,14 @@ pipeline {
                     'Dependency Scan': {
                         dir('pulse/api') {
                             sh 'npm ci'
-                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
-                            }
+                            sh 'npm audit --audit-level=high --omit=dev'
+                            sh '''
+                                docker run --rm -v "$PWD:/app" aquasec/trivy:latest \
+                                    fs --scanners vuln --severity HIGH,CRITICAL --pkg-types npm /app
+                            '''
+                            // withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                            //     sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
+                            // }
                         }
                     }
                 )
