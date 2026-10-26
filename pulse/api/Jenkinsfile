@@ -84,6 +84,43 @@ pipeline {
             }
         }
 
+        stage('Vulnerability Scan - Docker') {
+            when {
+                anyOf {
+                    changeset 'pulse/api/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                parallel(
+                    'Dependency Scan': {
+                        dir('pulse/api') {
+                            sh 'npm ci'
+                            sh 'npm run test:owasp'
+                        }
+                    }
+                )
+            }
+
+            post {
+                always {
+                    // Rapport XML → plugin OWASP Dependency-Check
+                    dependencyCheckPublisher(
+                pattern: 'pulse/api/owasp/dependency-check-report.xml'
+            )
+                    // Optionnel : aussi le HTML
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'pulse/api/owasp',
+                        reportFiles: 'dependency-check-report.html',
+                        reportName: 'OWASP Dependency-Check'
+                    ]
+                }
+            }
+        }
+
         stage('Build') {
             when {
                 anyOf {

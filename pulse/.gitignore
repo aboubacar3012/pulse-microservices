@@ -10,3 +10,5 @@
 **/.coverage.*
 **/coverage.xml
 **/reports/
+**/dependency-check-bin/
+**/owasp/
