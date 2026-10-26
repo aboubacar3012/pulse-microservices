@@ -96,7 +96,9 @@ pipeline {
                     'Dependency Scan': {
                         dir('pulse/api') {
                             sh 'npm ci'
-                            sh 'npm run test:owasp'
+                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
+                            }
                         }
                     }
                 )

@@ -126,3 +126,6 @@ curl http://localhost:3000/results
 # Via le proxy frontend (comme le navigateur)
 curl http://localhost:8080/api/results
 ```
+
+
+https://nvd.nist.gov/developers/request-an-api-key
