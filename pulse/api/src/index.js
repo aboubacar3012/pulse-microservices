@@ -108,7 +108,7 @@ app.get("/session/:sessionId", async (req, res) => {
     return res.json({ sessionId, votes, total });
   } catch (err) {
     console.error("session read failed:", err.message);
-    return res.status(503).json({ error: "compteurs indisponibles" });
+    return res.status(503).json({ error: "compteurs indisponibles !!!" });
   }
 });
 
