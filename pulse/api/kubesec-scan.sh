@@ -1,34 +1,27 @@
-#!/usr/bin/env bash
-# Usage : bash kubesec-scan.sh [dossier]   (défaut : k8s)
+#!/bin/bash
 
-set -euo pipefail
+#kubesec-scan.sh
 
-DIR="${1:-k8s}"
-MIN_SCORE=5
-FAILED=0
+# using kubesec v2 api (Deployment only — Service non supporté)
+scan_result=$(curl -sSX POST --data-binary @"k8s/api-deployment.yaml" https://v2.kubesec.io/scan)
+scan_message=$(curl -sSX POST --data-binary @"k8s/api-deployment.yaml" https://v2.kubesec.io/scan | jq .[0].message -r )
+scan_score=$(curl -sSX POST --data-binary @"k8s/api-deployment.yaml" https://v2.kubesec.io/scan | jq .[0].score )
 
-for file in "$DIR"/*.yaml; do
-  echo "==> $file"
 
-  # Scan avec l'image Docker kubesec
-  result=$(docker run -i --rm kubesec/kubesec:512c5e0 scan /dev/stdin < "$file")
+# using kubesec docker image for scanning
+# scan_result=$(docker run -i kubesec/kubesec:512c5e0 scan /dev/stdin < k8s/api-deployment.yaml)
+# scan_message=$(docker run -i kubesec/kubesec:512c5e0 scan /dev/stdin < k8s/api-deployment.yaml | jq .[].message -r)
+# scan_score=$(docker run -i kubesec/kubesec:512c5e0 scan /dev/stdin < k8s/api-deployment.yaml | jq .[].score)
 
-  # Pour chaque ressource du fichier
-  for i in $(seq 0 $(( $(jq length <<<"$result") - 1 ))); do
-    object=$(jq -r ".[$i].object" <<<"$result")
-    valid=$(jq -r ".[$i].valid" <<<"$result")
-    score=$(jq -r ".[$i].score" <<<"$result")
 
-    # Ignorer les ressources non supportées (Service, Ingress...)
-    if [[ "$valid" != "true" ]]; then
-      echo "    [SKIP] $object"
-    elif (( score >= MIN_SCORE )); then
-      echo "    [OK]   $object : score $score"
-    else
-      echo "    [FAIL] $object : score $score (minimum $MIN_SCORE)"
-      FAILED=1
-    fi
-  done
-done
+    # Kubesec scan result processing
+    # echo "Scan Score : $scan_score"
 
-exit $FAILED
+	if [[ "${scan_score}" -ge 5 ]]; then
+	    echo "Score is $scan_score"
+	    echo "Kubesec Scan $scan_message"
+	else
+	    echo "Score is $scan_score, which is less than or equal to 5."
+	    echo "Scanning Kubernetes Resource has Failed"
+	    exit 1;
+	fi;

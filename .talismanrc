@@ -21,4 +21,6 @@ fileignoreconfig:
   checksum: b1d0e1dc2bf06b1d04ef55472032d54ebbfac126c42baa49fce9d3c41ec8196e
 - filename: pulse/api/k8s/api-deployment.yaml
   checksum: 4a3e9949a7fbf3d41158c9b11453c31d0a11097cd3f0b007c01d3ca4a870ebb2
+- filename: pulse/api/trivy-k8s-scan.sh
+  checksum: 2690fabfe1cafa828ac81f24b8e183ee5bb52b3def1622f765c5674b3899353d
 version: "1.0"
