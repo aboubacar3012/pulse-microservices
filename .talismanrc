@@ -6,7 +6,7 @@ fileignoreconfig:
 - filename: pulse/api/reports/mutation/mutation.html
   checksum: dd4adb1188fc6f48864276cf1b750a57847678b7d6c03c883afdb56afb386b2b
 - filename: pulse/api/package-lock.json
-  checksum: ed650ba9ec82cb5654172f27c071efb45c9d216ac7e14b6fd4821bcd94402cb0
+  checksum: 9a8fae283f001f3285eaedd6b41cbb55ac8a6b17bebcf41fcb75f253ce77ea26
 - filename: pulse/api/sonar-project.properties
   checksum: 79b06dc78f95ded89806ee0f9ed3da33096eae0cad8f7d17f5b59ef4d44245dc
 - filename: pulse/api/README.md
