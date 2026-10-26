@@ -172,7 +172,9 @@ pipeline {
             steps {
                 parallel(
                     'OPA Scan': {
-                        sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s/'
+                        dir('pulse/api') {
+                            sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s/'
+                        }
                     },
                 // "Kubesec Scan": {
                 //     sh "bash kubesec-scan.sh"
