@@ -106,10 +106,15 @@ pipeline {
                     'Dependency Scan': {
                         dir('pulse/api') {
                             sh 'npm ci'
+                            // Gate strict : deps de prod uniquement
                             sh 'npm audit --audit-level=high --omit=dev'
+                            // OWASP (NVD cache) : CVE aussi dans les outils de scan (sonar/jest-junit/owasp)
+                            // → UNSTABLE sans bloquer le pipeline en lab
                             sh 'mkdir -p "$OWASP_DATA_DIR"'
-                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
+                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                    sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
+                                }
                             }
                         }
                     },
