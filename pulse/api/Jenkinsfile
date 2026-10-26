@@ -105,11 +105,13 @@ pipeline {
                             //     sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
                             // }
                         }
-                    }
+                    },
 
                     'Trivy Scan': {
+                        dir('pulse/api') {
                             sh 'bash trivy-docker-image-scan.sh'
-                        },
+                        }
+                    },
                 )
             }
 
