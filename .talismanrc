@@ -14,5 +14,5 @@ fileignoreconfig:
 - filename: pulse/api/Jenkinsfile
   checksum: 75788f6be4774e312d2e8eeab4200c5ab06996f56f7d0a7d7a488b4e945a515f
 - filename: pulse/api/trivy-docker-image-scan.sh
-  checksum: 76c2f034415a25e45fc2058495aef5bd826d015eb5ff851516fb07cd84f9d233
+  checksum: 392ced2496e297a710ef019ff4dae55de3ff486f745156cf26301b897aca79ce
 version: "1.0"
