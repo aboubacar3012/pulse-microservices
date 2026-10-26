@@ -118,11 +118,13 @@ deny contains msg if {
 }
 
 warn contains msg if {
+	input.kind in (workload_kinds | {"Pod", "CronJob"})
 	pod_spec.automountServiceAccountToken != false
 	msg := sprintf("%s: pensez à mettre automountServiceAccountToken: false si l'API Kubernetes n'est pas utilisée", [label])
 }
 
 warn contains msg if {
+	input.kind in (workload_kinds | {"Pod", "CronJob"})
 	not pod_spec.securityContext.seccompProfile
 	msg := sprintf("%s: aucun seccompProfile défini (recommandé : RuntimeDefault)", [label])
 }
@@ -266,10 +268,11 @@ warn contains msg if {
 # Labels et namespace (toutes ressources)
 # ------------------------------------------------------------
 
-deny contains msg if {
+# Namespace default accepté pour le lab (passer en deny plus tard en prod)
+warn contains msg if {
 	input.kind in (workload_kinds | {"Pod", "CronJob", "Service", "Ingress"})
 	object.get(input.metadata, "namespace", "default") == "default"
-	msg := sprintf("%s: le namespace 'default' ne doit pas être utilisé", [label])
+	msg := sprintf("%s: namespace 'default' utilisé (toléré en lab, à éviter en prod)", [label])
 }
 
 warn contains msg if {
