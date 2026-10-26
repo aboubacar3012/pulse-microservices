@@ -11,9 +11,15 @@ allowed_service_types := {"ClusterIP", "NodePort"}
 # Capabilities ajoutables autorisées
 allowed_added_capabilities := {"NET_BIND_SERVICE"}
 
-# Registres d'images autorisés (laisser vide pour désactiver la règle)
-allowed_registries := set()
-# exemple : allowed_registries := {"registry.mycorp.com/", "gcr.io/my-project/"}
+# Préfixes d'images autorisés (Docker Hub court + org Pulse).
+# Ne pas utiliser set() vide : OPA refuse d'itérer un set statiquement vide.
+allowed_registries := {
+	"aboubacar99/",
+	"busybox",
+	"node",
+	"redis",
+	"postgres",
+}
 
 workload_kinds := {"Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "Job"}
 
@@ -52,6 +58,11 @@ image_is_pinned(img) if {
 	last := parts[count(parts) - 1]
 	contains(last, ":")
 	not endswith(last, ":latest")
+}
+
+any_registry_matches(img) if {
+	some reg in allowed_registries
+	startswith(img, reg)
 }
 
 # ------------------------------------------------------------
@@ -185,17 +196,11 @@ deny contains msg if {
 	msg := sprintf("%s: l'image '%s' du conteneur '%s' doit avoir un tag fixe ou un digest (pas de :latest)", [label, c.image, c.name])
 }
 
-# Image : registre autorisé
+# Image : registre / préfixe autorisé
 deny contains msg if {
-	count(allowed_registries) > 0
 	some c in all_containers
 	not any_registry_matches(c.image)
 	msg := sprintf("%s: l'image '%s' ne provient pas d'un registre autorisé", [label, c.image])
-}
-
-any_registry_matches(img) if {
-	some reg in allowed_registries
-	startswith(img, reg)
 }
 
 # Resources : requests et limits obligatoires
@@ -258,7 +263,7 @@ warn contains msg if {
 }
 
 # ------------------------------------------------------------
-# --- METADATA (toutes ressources) 
+# Labels et namespace (toutes ressources)
 # ------------------------------------------------------------
 
 deny contains msg if {
