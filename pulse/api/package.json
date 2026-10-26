@@ -10,7 +10,7 @@
     "test:coverage": "jest --runInBand --coverage --ci --reporters=default --reporters=jest-junit",
     "test:mutation": "stryker run",
     "test:sonar": "sonar-scanner-npm",
-    "test:owasp": "owasp-dependency-check --scan package-lock.json --exclude \"dependency-check-bin\" --out owasp -f HTML -f XML --failOnCVSS 7"
+    "test:owasp": "owasp-dependency-check --scan package-lock.json --exclude \"dependency-check-bin\" --out owasp -f HTML -f XML --failOnCVSS 7 --data \"${OWASP_DATA_DIR:-/tmp/dependency-check-data}\""
   },
   "engines": {
     "node": ">=20"
