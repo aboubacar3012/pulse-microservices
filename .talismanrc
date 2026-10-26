@@ -19,5 +19,6 @@ fileignoreconfig:
   checksum: 64f45703787cedc550d2d472055229aa1022b2b327b4e65f6fa4e77658cb4928
 - filename: pulse/api/opa-k8s-security.rego
   checksum: b1d0e1dc2bf06b1d04ef55472032d54ebbfac126c42baa49fce9d3c41ec8196e
-
+- filename: pulse/api/k8s/api-deployment.yaml
+  checksum: 4a3e9949a7fbf3d41158c9b11453c31d0a11097cd3f0b007c01d3ca4a870ebb2
 version: "1.0"

@@ -1,9 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: api
+  namespace: default
   labels:
     app: api
-  name: api
+    app.kubernetes.io/name: api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: pulse
 spec:
   replicas: 5
   selector:
@@ -13,18 +17,61 @@ spec:
     metadata:
       labels:
         app: api
+        app.kubernetes.io/name: api
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: pulse
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: wait-redis
           image: busybox:1.36
           command: ["sh", "-c", "until nc -z redis 6379; do echo waiting redis; sleep 2; done"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
         - name: wait-db
           image: busybox:1.36
           command: ["sh", "-c", "until nc -z db 5432; do echo waiting db; sleep 2; done"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
       containers:
-        - image: aboubacar99/pulse-api:94a40f2056e8431be3b058cbcb334253f26ae27c
+        - name: api
+          image: aboubacar99/pulse-api:94a40f2056e8431be3b058cbcb334253f26ae27c
           imagePullPolicy: Always
-          name: api
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: PORT
               value: "3000"
@@ -37,6 +84,13 @@ spec:
           ports:
             - containerPort: 3000
               name: api
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
           readinessProbe:
             httpGet:
               path: /health
@@ -49,3 +103,9 @@ spec:
               port: 3000
             initialDelaySeconds: 15
             periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
