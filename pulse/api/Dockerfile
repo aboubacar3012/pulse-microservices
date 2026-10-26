@@ -1,6 +1,3 @@
-# Image toujours linux/amd64 (nodes K8s), même depuis un Mac arm64.
-
-# --- deps ---
 FROM --platform=linux/amd64 node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
