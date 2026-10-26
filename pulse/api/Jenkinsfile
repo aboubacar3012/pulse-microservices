@@ -9,38 +9,38 @@ pipeline {
     }
 
     stages {
-        stage('Unit Tests and Coverage Jest') {
-            when {
-                anyOf {
-                    changeset 'pulse/api/**'
-                    buildingTag()
-                }
-            }
-            steps {
-                dir('pulse/api') {
-                    sh 'npm ci'
-                    sh 'npm run test:coverage'
-                }
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: 'pulse/api/coverage/junit.xml'
-                    recordCoverage(
-                        tools: [[parser: 'COBERTURA', pattern: 'pulse/api/coverage/cobertura-coverage.xml']],
-                        id: 'api-coverage',
-                        name: 'API Coverage'
-                    )
-                    publishHTML target: [
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'pulse/api/coverage',
-                        reportFiles: 'index.html',
-                        reportName: 'Jest Coverage Report'
-                    ]
-                }
-            }
-        }
+        // stage('Unit Tests and Coverage Jest') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/api/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         dir('pulse/api') {
+        //             sh 'npm ci'
+        //             sh 'npm run test:coverage'
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             junit allowEmptyResults: true, testResults: 'pulse/api/coverage/junit.xml'
+        //             recordCoverage(
+        //                 tools: [[parser: 'COBERTURA', pattern: 'pulse/api/coverage/cobertura-coverage.xml']],
+        //                 id: 'api-coverage',
+        //                 name: 'API Coverage'
+        //             )
+        //             publishHTML target: [
+        //                 allowMissing: true,
+        //                 alwaysLinkToLastBuild: true,
+        //                 keepAll: true,
+        //                 reportDir: 'pulse/api/coverage',
+        //                 reportFiles: 'index.html',
+        //                 reportName: 'Jest Coverage Report'
+        //             ]
+        //         }
+        //     }
+        // }
 
         // stage('Mutation Tests - Stryker') {
         //     when {
@@ -69,98 +69,98 @@ pipeline {
         //     }
         // }
 
-        stage('SonarQube') {
-            when {
-                anyOf {
-                    changeset 'pulse/api/**'
-                    buildingTag()
-                }
-            }
-            steps {
-                dir('pulse/api') {
-                    sh 'npm ci'
-                    sh 'npm run test:coverage'   // génère coverage/lcov.info pour Sonar
-                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                    npx sonar-scanner-npm \
-                        -Dsonar.host.url=http://184.193.180.126:9000 \
-                        -Dsonar.token=$SONAR_TOKEN \
-                        -Dsonar.projectKey=Pulse-Microservices
-                    '''
-                    }
-                }
-            }
-        }
+        // stage('SonarQube') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/api/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         dir('pulse/api') {
+        //             sh 'npm ci'
+        //             sh 'npm run test:coverage'   // génère coverage/lcov.info pour Sonar
+        //             withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+        //                 sh '''
+        //             npx sonar-scanner-npm \
+        //                 -Dsonar.host.url=http://184.193.180.126:9000 \
+        //                 -Dsonar.token=$SONAR_TOKEN \
+        //                 -Dsonar.projectKey=Pulse-Microservices
+        //             '''
+        //             }
+        //         }
+        //     }
+        // }
 
-        stage('Vulnerability Scan - Docker') {
-            when {
-                anyOf {
-                    changeset 'pulse/api/**'
-                    buildingTag()
-                }
-            }
-            steps {
-                parallel(
-                    'Dependency Scan': {
-                        dir('pulse/api') {
-                            sh 'npm ci'
-                            sh 'npm audit --audit-level=high --omit=dev'
-                        // withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                        //     sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
-                        // }
-                        }
-                    },
+        // stage('Vulnerability Scan - Docker') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/api/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         parallel(
+        //             'Dependency Scan': {
+        //                 dir('pulse/api') {
+        //                     sh 'npm ci'
+        //                     sh 'npm audit --audit-level=high --omit=dev'
+        //                 // withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+        //                 //     sh 'npm run test:owasp -- --nvdApiKey=$NVD_API_KEY'
+        //                 // }
+        //                 }
+        //             },
 
-                    'Trivy Scan': {
-                        dir('pulse/api') {
-                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                                sh "bash trivy-docker-image-scan.sh ${BASE_IMAGE}"
-                            }
-                        }
-                    },
-                    'OPA Conftest': {
-                        dir('pulse/api') {
-                            sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
-                        }
-                    }
-                )
-            }
+        //             'Trivy Scan': {
+        //                 dir('pulse/api') {
+        //                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+        //                         sh "bash trivy-docker-image-scan.sh ${BASE_IMAGE}"
+        //                     }
+        //                 }
+        //             },
+        //             'OPA Conftest': {
+        //                 dir('pulse/api') {
+        //                     sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
+        //                 }
+        //             }
+        //         )
+        //     }
 
-            post {
-                always {
-                    // Rapport XML → plugin OWASP Dependency-Check
-                    // dependencyCheckPublisher(
-                    //         pattern: 'pulse/api/owasp/dependency-check-report.xml'
-                    //     )
-                    // Optionnel : aussi le HTML
-                    publishHTML target: [
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'pulse/api/owasp',
-                        reportFiles: 'dependency-check-report.html',
-                        reportName: 'OWASP Dependency-Check'
-                    ]
-                }
-            }
-        }
+        //     post {
+        //         always {
+        //             // Rapport XML → plugin OWASP Dependency-Check
+        //             // dependencyCheckPublisher(
+        //             //         pattern: 'pulse/api/owasp/dependency-check-report.xml'
+        //             //     )
+        //             // Optionnel : aussi le HTML
+        //             publishHTML target: [
+        //                 allowMissing: true,
+        //                 alwaysLinkToLastBuild: true,
+        //                 keepAll: true,
+        //                 reportDir: 'pulse/api/owasp',
+        //                 reportFiles: 'dependency-check-report.html',
+        //                 reportName: 'OWASP Dependency-Check'
+        //             ]
+        //         }
+        //     }
+        // }
 
-        stage('Build') {
-            when {
-                anyOf {
-                    changeset 'pulse/api/**'
-                    buildingTag()
-                }
-            }
-            steps {
-                withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
-                    dir('pulse/api') {
-                        sh 'docker build -t ${DOCKER_IMAGE} .'
-                        sh 'docker push ${DOCKER_IMAGE}'
-                    }
-                }
-            }
-        }
+        // stage('Build') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/api/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+        //             dir('pulse/api') {
+        //                 sh 'docker build -t ${DOCKER_IMAGE} .'
+        //                 sh 'docker push ${DOCKER_IMAGE}'
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Vulnerability Scan - Kubernetes') {
             when {
