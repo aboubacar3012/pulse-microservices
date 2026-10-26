@@ -12,7 +12,7 @@ fileignoreconfig:
 - filename: pulse/api/README.md
   checksum: 6cc531a3277af23c01724c14ac6b6155d0b85b8ad4ceb0b88ddc5421f19d6681
 - filename: pulse/api/Jenkinsfile
-  checksum: 89e2ca5532e5adb9fc848b393a8b214e3a71a4510833621f278e82f5f5da5527
+  checksum: 8ec9e1016f782be2bb7affe227cc8726edafc93af088757960c85f7b565baec5
 - filename: pulse/api/trivy-docker-image-scan.sh
   checksum: 392ced2496e297a710ef019ff4dae55de3ff486f745156cf26301b897aca79ce
 - filename: pulse/api/opa-docker-security.rego
