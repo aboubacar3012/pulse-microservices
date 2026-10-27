@@ -33,6 +33,7 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: 65534
+            runAsGroup: 65534
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -50,6 +51,7 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: 65534
+            runAsGroup: 65534
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -67,7 +69,8 @@ spec:
           imagePullPolicy: Always
           securityContext:
             runAsNonRoot: true
-            runAsUser: 100
+            runAsUser: 10000
+            runAsGroup: 10000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
