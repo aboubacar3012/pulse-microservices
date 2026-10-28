@@ -7,7 +7,7 @@ pipeline {
         APP_NAME        = 'pulse-api'
         DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${GIT_COMMIT}"
         // Cache NVD / CVE pour OWASP Dependency-Check (persistant sur l'agent)
-        OWASP_DATA_DIR  = '/var/jenkins_home/dependency-check-data'
+        OWASP_DATA_DIR  = '/var/lib/jenkins/dependency-check-data'
         APPLICATION_URL = 'http://localhost:3000'
     }
 
