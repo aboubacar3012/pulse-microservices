@@ -1,34 +1,30 @@
 #!/bin/bash
 # ==============================================================================
-# Installation Jenkins LTS — Ubuntu 24.04+
+# Installation Jenkins LTS (Docker) — Ubuntu 24.04+
 #
-# Prérequis : init-script.sh (Docker, Git, OpenJDK 21).
-# Ce script installe Java 21 s'il est absent.
+# Prérequis : Docker doit être installé sur le serveur.
 #
 # CE QUE CE SCRIPT INSTALLE
 # ------------------------------------------------------------------------------
-#   - OpenJDK 21 (si manquant)
-#   - Jenkins LTS (repo officiel pkg.jenkins.io)
-#   - service systemd jenkins enabled (port 8080)
-#   - utilisateur jenkins ajouté au groupe docker
-#   - plugins lab (latest, IDs issus de setup/jenkins-plugins/plugins.txt) :
-#       git, workflow-aggregator, docker-workflow, blueocean,
-#       sonar, jacoco, slack, performance, pitmutation,
-#       dependency-check-jenkins-plugin, kubernetes-cli
+#   - Docker (vérifie qu'il est présent)
+#   - Jenkins LTS via conteneur Docker (port 8080, port 50000 pour les agents)
+#   - Bind mount du répertoire /var/jenkins_home sur l'hôte (/opt/jenkins_home)
+#   - Accès au socket Docker depuis le conteneur (DooD)
+#   - Plugins lab installés automatiquement via jenkins-plugin-cli
 #
-# Accès : http://<ip>:8080  (ou jenkins.santu.io si reverse-proxy)
-# Mot de passe initial : /var/lib/jenkins/secrets/initialAdminPassword
+# Accès : http://<ip>:8080
+# Mot de passe initial : /opt/jenkins_home/secrets/initialAdminPassword
 # ==============================================================================
-
-# rajoute sudo usermod -aG docker jenkins et sudo systemctl restart jenkins et sudo systemctl status jenkins
 
 set -euo pipefail
 
+# 1. Vérification que le script est lancé en root
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "Exécute ce script en root (sudo)."
   exit 1
 fi
 
+# 2. Vérification d'Ubuntu 24.04+
 . /etc/os-release
 if [[ "${ID:-}" != "ubuntu" ]]; then
   echo "Script prévu pour Ubuntu (détecté: ${ID:-inconnu})."
@@ -40,53 +36,60 @@ if [[ "${MAJOR}" -lt 24 ]]; then
   exit 1
 fi
 
-export DEBIAN_FRONTEND=noninteractive
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_FILE="${SCRIPT_DIR}/../jenkins-plugins/plugins.txt"
+# 3. Vérification que Docker est installé
+if ! command -v docker >/dev/null 2>&1; then
+  echo "❌ Docker n'est pas installé. Lance d'abord ton script d'installation de Docker."
+  exit 1
+fi
+
+# 4. Variables de configuration
+JENKINS_HOME_DIR="/opt/jenkins_home"
+JENKINS_CONTAINER="jenkins"
+JENKINS_IMAGE="jenkins/jenkins:lts-jdk21"
+JENKINS_PORT="8080"
+JENKINS_AGENT_PORT="50000"
+DOCKER_GID=$(getent group docker | cut -d: -f3)
+
+echo ".........----------------#################._.-.-DOCKER-.-._.#################----------------........."
+
+# 5. Création du répertoire pour le bind mount
+echo "📁 Création du répertoire de données Jenkins : ${JENKINS_HOME_DIR}"
+mkdir -p "${JENKINS_HOME_DIR}"
+
+# Récupération de l'UID/GID de l'utilisateur jenkins (dans l'image officielle, c'est 1000:1000)
+# On s'assure que les droits sur le répertoire hôte correspondent à l'utilisateur du conteneur
+JENKINS_UID=1000
+JENKINS_GID=1000
+chown -R ${JENKINS_UID}:${JENKINS_GID} "${JENKINS_HOME_DIR}"
 
 echo ".........----------------#################._.-.-JENKINS-.-._.#################----------------........."
 
-if ! command -v java >/dev/null 2>&1; then
-  echo "Java absent — installation OpenJDK 21..."
-  apt-get update -y
-  apt-get install -y openjdk-21-jdk
+# 6. Suppression d'un éventuel conteneur existant (pour idempotence)
+if docker ps -a --format '{{.Names}}' | grep -q "^${JENKINS_CONTAINER}$"; then
+  echo "⚠️  Un conteneur '${JENKINS_CONTAINER}' existe déjà. Suppression..."
+  docker rm -f "${JENKINS_CONTAINER}"
 fi
-java -version
 
-echo ".........----------------#################._.-.-REPO JENKINS LTS-.-._.#################----------------........."
-apt-get update -y
-apt-get install -y curl ca-certificates gnupg fontconfig
-
-# Clé 2026 (LTS ≥ 2.541.1) — l'ancienne jenkins.io-2023.key donne NO_PUBKEY 7198F4B714ABFC68
-install -m 0755 -d /etc/apt/keyrings /usr/share/keyrings
-rm -f /etc/apt/keyrings/jenkins-keyring.asc \
-      /usr/share/keyrings/jenkins-keyring.asc \
-      /etc/apt/sources.list.d/jenkins.list
-curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key \
-  -o /etc/apt/keyrings/jenkins-keyring.asc
-chmod a+r /etc/apt/keyrings/jenkins-keyring.asc
-echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" \
-  > /etc/apt/sources.list.d/jenkins.list
-
-apt-get update -y
-apt-get install -y jenkins
-
-# Java 21 explicite pour le service
-install -d /etc/systemd/system/jenkins.service.d
-cat > /etc/systemd/system/jenkins.service.d/override.conf <<'EOF'
-[Service]
-Environment="JAVA_OPTS=-Djava.awt.headless=true"
-EOF
-
-if getent group docker >/dev/null 2>&1; then
-  usermod -aG docker jenkins
-  echo "Utilisateur jenkins ajouté au groupe docker."
-else
-  echo "Groupe docker introuvable — lance d'abord init-script.sh (Docker)."
-fi
+# 7. Lancement du conteneur Jenkins
+echo "🚀 Lancement du conteneur Jenkins..."
+docker run -d \
+  --name "${JENKINS_CONTAINER}" \
+  --restart always \
+  -p "${JENKINS_PORT}:8080" \
+  -p "${JENKINS_AGENT_PORT}:50000" \
+  -v "${JENKINS_HOME_DIR}":/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --group-add "${DOCKER_GID}" \
+  "${JENKINS_IMAGE}"
 
 echo ".........----------------#################._.-.-PLUGINS-.-._.#################----------------........."
-# IDs du lab ; versions épinglées du plugins.txt ignorées (trop anciennes pour un LTS actuel)
+
+# 8. Installation des plugins via jenkins-plugin-cli (dans le conteneur)
+# On attend que le conteneur soit prêt
+echo "⏳ Attente du démarrage du conteneur..."
+sleep 15
+
+# Liste des plugins
 PLUGINS=(
   git
   workflow-aggregator
@@ -101,7 +104,12 @@ PLUGINS=(
   kubernetes-cli
 )
 
+# Lecture du fichier plugins.txt s'il existe (situé à côté du script)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_FILE="${SCRIPT_DIR}/../jenkins-plugins/plugins.txt"
+
 if [[ -f "${PLUGIN_FILE}" ]]; then
+  echo "📄 Lecture du fichier de plugins personnalisé : ${PLUGIN_FILE}"
   while IFS= read -r line || [[ -n "${line}" ]]; do
     [[ -z "${line}" || "${line}" =~ ^[[:space:]]*# ]] && continue
     name="${line%%@*}"
@@ -110,34 +118,32 @@ if [[ -f "${PLUGIN_FILE}" ]]; then
   done < "${PLUGIN_FILE}"
 fi
 
-# Déduplique
+# Déduplication
 mapfile -t PLUGINS < <(printf '%s\n' "${PLUGINS[@]}" | awk 'NF && !seen[$0]++')
 
-if command -v jenkins-plugin-cli >/dev/null 2>&1; then
-  jenkins-plugin-cli --plugins "${PLUGINS[@]}" --plugin-download-directory /var/lib/jenkins/plugins
-  chown -R jenkins:jenkins /var/lib/jenkins/plugins
-else
-  echo "jenkins-plugin-cli absent — plugins à installer depuis l'UI."
-fi
+echo "📦 Installation de ${#PLUGINS[@]} plugins..."
+docker exec -u root "${JENKINS_CONTAINER}" jenkins-plugin-cli --plugins "${PLUGINS[@]}"
 
-systemctl daemon-reload
-systemctl enable --now jenkins
-
-echo "Attente du démarrage Jenkins (port 8080)..."
-for _ in $(seq 1 60); do
-  if curl -fsS http://127.0.0.1:8080/login >/dev/null 2>&1; then
-    break
-  fi
-  sleep 5
-done
+# 9. Redémarrage de Jenkins pour prendre en compte les plugins
+echo "🔄 Redémarrage de Jenkins pour activer les plugins..."
+docker restart "${JENKINS_CONTAINER}"
 
 echo ".........----------------#################._.-.-COMPLETED-.-._.#################----------------........."
-systemctl --no-pager --full status jenkins | sed -n '1,12p' || true
-echo
-echo "Jenkins : http://$(hostname -I | awk '{print $1}'):8080"
-if [[ -f /var/lib/jenkins/secrets/initialAdminPassword ]]; then
-  echo "Mot de passe initial admin :"
-  cat /var/lib/jenkins/secrets/initialAdminPassword
+echo ""
+echo "✅ Jenkins est installé et démarré !"
+echo "   URL : http://$(hostname -I | awk '{print $1}'):${JENKINS_PORT}"
+echo "   Données : ${JENKINS_HOME_DIR} (bind mount)"
+echo ""
+
+# 10. Affichage du mot de passe initial
+PASS_FILE="${JENKINS_HOME_DIR}/secrets/initialAdminPassword"
+if [[ -f "${PASS_FILE}" ]]; then
+  echo "🔑 Mot de passe initial admin :"
+  cat "${PASS_FILE}"
 else
-  echo "Fichier initialAdminPassword absent (setup wizard déjà passé ?)."
+  echo "⚠️  Fichier initialAdminPassword absent (le setup wizard est peut-être déjà passé)."
 fi
+
+echo ""
+echo "ℹ️  Pour vérifier l'état du conteneur : docker ps | grep ${JENKINS_CONTAINER}"
+echo "ℹ️  Pour voir les logs : docker logs -f ${JENKINS_CONTAINER}"
