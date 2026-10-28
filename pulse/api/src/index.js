@@ -123,13 +123,13 @@ function redisRetryStrategy(times) {
   return Math.min(times * 200, 3000);
 }
 
-// const redis = new Redis({
-//   host: REDIS_HOST,
-//   port: REDIS_PORT,
-//   maxRetriesPerRequest: null,
-//   enableReadyCheck: true,
-//   retryStrategy: redisRetryStrategy,
-// });
+const redis = new Redis({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  maxRetriesPerRequest: null,
+  enableReadyCheck: true,
+  retryStrategy: redisRetryStrategy,
+});
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 
@@ -286,18 +286,18 @@ app.get("/v3/api-docs", (_req, res) => res.json(swaggerSpec));
 app.use("/swagger-ui", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 async function start() {
-  // for (let attempt = 1; attempt <= 30; attempt += 1) {
-  //   try {
-  //     await initDb();
-  //     break;
-  //   } catch (err) {
-  //     console.warn(
-  //       `attente postgres (${attempt}/30): ${err.message}`
-  //     );
-  //     await new Promise((r) => setTimeout(r, 2000));
-  //     if (attempt === 30) throw err;
-  //   }
-  // }
+  for (let attempt = 1; attempt <= 30; attempt += 1) {
+    try {
+      await initDb();
+      break;
+    } catch (err) {
+      console.warn(
+        `attente postgres (${attempt}/30): ${err.message}`
+      );
+      await new Promise((r) => setTimeout(r, 2000));
+      if (attempt === 30) throw err;
+    }
+  }
 
   app.listen(PORT, () => {
     console.log(`santu-pulse-api écoute sur :${PORT}`);
