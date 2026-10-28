@@ -110,7 +110,7 @@ docker run -d --name api --network pulse-net -p 3000:3000 \
 
 `-p 3000:3000` est optionnel (debug). En prod K8s, seul le Service ClusterIP `api` est nécessaire.
 
-## Exemples
+## Exemplessss
 
 ```bash
 SID=$(uuidgen | tr '[:upper:]' '[:lower:]')
