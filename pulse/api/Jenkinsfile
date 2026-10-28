@@ -12,88 +12,88 @@ pipeline {
     }
 
     stages {
-        // stage('Unit Tests and Coverage Jest Coverage') {
-        //     when {
-        //         anyOf {
-        //             changeset 'pulse/api/**'
-        //             buildingTag()
-        //         }
-        //     }
-        //     steps {
-        //         dir('pulse/api') {
-        //             sh 'npm ci'
-        //             sh 'npm run test:coverage'
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             junit allowEmptyResults: true, testResults: 'pulse/api/coverage/junit.xml'
-        //             recordCoverage(
-        //                 tools: [[parser: 'COBERTURA', pattern: 'pulse/api/coverage/cobertura-coverage.xml']],
-        //                 id: 'api-coverage',
-        //                 name: 'API Coverage'
-        //             )
-        //             publishHTML target: [
-        //                 allowMissing: true,
-        //                 alwaysLinkToLastBuild: true,
-        //                 keepAll: true,
-        //                 reportDir: 'pulse/api/coverage',
-        //                 reportFiles: 'index.html',
-        //                 reportName: 'Jest Coverage Report'
-        //             ]
-        //         }
-        //     }
-        // }
+        stage('Unit Tests and Coverage Jest Coverage') {
+            when {
+                anyOf {
+                    changeset 'pulse/api/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                dir('pulse/api') {
+                    sh 'npm ci'
+                    sh 'npm run test:coverage'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'pulse/api/coverage/junit.xml'
+                    recordCoverage(
+                        tools: [[parser: 'COBERTURA', pattern: 'pulse/api/coverage/cobertura-coverage.xml']],
+                        id: 'api-coverage',
+                        name: 'API Coverage'
+                    )
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'pulse/api/coverage',
+                        reportFiles: 'index.html',
+                        reportName: 'Jest Coverage Report'
+                    ]
+                }
+            }
+        }
 
-        // stage('Mutation Tests - Stryker') {
-        //     when {
-        //         anyOf {
-        //             changeset 'pulse/api/**'
-        //             buildingTag()
-        //         }
-        //     }
-        //     steps {
-        //         dir('pulse/api') {
-        //             sh 'npm ci'
-        //             sh 'npm run test:mutation'
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             publishHTML target: [
-        //                 allowMissing: true,
-        //                 alwaysLinkToLastBuild: true,
-        //                 keepAll: true,
-        //                 reportDir: 'pulse/api/reports/mutation',
-        //                 reportFiles: 'mutation.html',
-        //                 reportName: 'Stryker Mutation Report'
-        //             ]
-        //         }
-        //     }
-        // }
+        stage('Mutation Tests - Stryker') {
+            when {
+                anyOf {
+                    changeset 'pulse/api/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                dir('pulse/api') {
+                    sh 'npm ci'
+                    sh 'npm run test:mutation'
+                }
+            }
+            post {
+                always {
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'pulse/api/reports/mutation',
+                        reportFiles: 'mutation.html',
+                        reportName: 'Stryker Mutation Report'
+                    ]
+                }
+            }
+        }
 
-        // stage('SonarQube') {
-        //     when {
-        //         anyOf {
-        //             changeset 'pulse/api/**'
-        //             buildingTag()
-        //         }
-        //     }
-        //     steps {
-        //         dir('pulse/api') {
-        //             sh 'npm ci'
-        //             sh 'npm run test:coverage'   // génère coverage/lcov.info pour Sonar
-        //             withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-        //                 sh '''
-        //             npx sonar-scanner-npm \
-        //                 -Dsonar.host.url=http://100.50.5.73:9000 \
-        //                 -Dsonar.token=$SONAR_TOKEN \
-        //                 -Dsonar.projectKey=pulse-api
-        //             '''
-        //             }
-        //         }
-        //     }
-        // }
+        stage('SonarQube') {
+            when {
+                anyOf {
+                    changeset 'pulse/api/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                dir('pulse/api') {
+                    sh 'npm ci'
+                    sh 'npm run test:coverage'   // génère coverage/lcov.info pour Sonar
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                    npx sonar-scanner-npm \
+                        -Dsonar.host.url=http://100.50.5.73:9000 \
+                        -Dsonar.token=$SONAR_TOKEN \
+                        -Dsonar.projectKey=pulse-api
+                    '''
+                    }
+                }
+            }
+        }
 
         stage('Vulnerability Scan - Docker') {
             when {

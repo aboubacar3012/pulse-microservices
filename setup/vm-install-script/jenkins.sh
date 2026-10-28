@@ -20,6 +20,8 @@
 # Mot de passe initial : /var/lib/jenkins/secrets/initialAdminPassword
 # ==============================================================================
 
+# rajoute sudo usermod -aG docker jenkins et sudo systemctl restart jenkins et sudo systemctl status jenkins
+
 set -euo pipefail
 
 if [[ "$(id -u)" -ne 0 ]]; then
