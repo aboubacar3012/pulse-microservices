@@ -26,6 +26,9 @@
 #   - OpenJDK 21 (ou plus récent si dispo)
 #   - Maven
 #
+# Node.js
+#   - Node.js 24 LTS (repo NodeSource, npm inclus) — pas le paquet Ubuntu (18 sans npm)
+#
 # Utilitaires DevOps
 #   - python3, python3-pip, python3-venv
 #   - make, build-essential
@@ -166,5 +169,34 @@ apt-get install -y openjdk-21-jdk maven
 java -version
 mvn -v
 
+echo ".........----------------#################._.-.-NODE.JS 24 + NPM-.-._.#################----------------........."
+# Ubuntu 24 : nodejs 18.x sans npm. On le remplace par Node 24 LTS NodeSource (npm inclus).
+apt-get remove --purge -y nodejs npm libnode-dev 2>/dev/null || true
+apt-get autoremove -y || true
+rm -f /etc/apt/sources.list.d/nodesource.list \
+      /etc/apt/sources.list.d/nodesource.sources \
+      /etc/apt/keyrings/nodesource.gpg \
+      /usr/share/keyrings/nodesource.gpg
+
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+  | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+chmod a+r /etc/apt/keyrings/nodesource.gpg
+
+NODE_MAJOR=24
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
+  > /etc/apt/sources.list.d/nodesource.list
+cat > /etc/apt/preferences.d/nodesource <<'EOF'
+Package: nodejs
+Pin: origin deb.nodesource.com
+Pin-Priority: 1001
+EOF
+
+apt-get update -y
+apt-get install -y nodejs
+hash -r
+node -v
+npm -v
+
 echo ".........----------------#################._.-.-COMPLETED-.-._.#################----------------........."
-echo "OK — Docker, Git, Java 21, Maven, outils réseau / DevOps installés."
+echo "OK — Docker, Git, Java 21, Maven, Node.js 24, npm, outils réseau / DevOps installés."
