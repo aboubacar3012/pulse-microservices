@@ -2,6 +2,96 @@ const express = require("express");
 const cors = require("cors");
 const Redis = require("ioredis");
 const { Pool } = require("pg");
+const swaggerUi = require("swagger-ui-express");
+const swaggerJsdoc = require("swagger-jsdoc");
+
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: "3.0.3",
+    info: {
+      title: "Santu Pulse API",
+      version: "1.0.0",
+    },
+    servers: [{ url: "http://localhost:3000" }],
+    paths: {
+      "/health": {
+        get: {
+          tags: ["health"],
+          summary: "Santé de l'API",
+          responses: {
+            200: { description: "OK" },
+          },
+        },
+      },
+      "/tools": {
+        get: {
+          tags: ["vote"],
+          summary: "Liste des outils votables",
+          responses: { 200: { description: "Liste des outils" } },
+        },
+      },
+      "/session/{sessionId}": {
+        get: {
+          tags: ["vote"],
+          summary: "Compteurs d'une session",
+          parameters: [
+            {
+              name: "sessionId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            200: { description: "Compteurs session" },
+            400: { description: "sessionId invalide" },
+            503: { description: "Redis indisponible" },
+          },
+        },
+      },
+      "/vote": {
+        post: {
+          tags: ["vote"],
+          summary: "Enregistrer un vote",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["tool", "sessionId"],
+                  properties: {
+                    tool: {
+                      type: "string",
+                      enum: ["docker","ansible","kubernetes","linux","git","terraform","jenkins","aws"],
+                    },
+                    sessionId: { type: "string", format: "uuid" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            202: { description: "Vote accepté" },
+            400: { description: "Entrée invalide" },
+            503: { description: "Redis indisponible" },
+          },
+        },
+      },
+      "/results": {
+        get: {
+          tags: ["results"],
+          summary: "Totaux globaux",
+          responses: {
+            200: { description: "Résultats agrégés" },
+            503: { description: "Postgres indisponible" },
+          },
+        },
+      },
+    },
+  },
+  apis: ["./src/index.js"], // ou un fichier openapi.yaml
+});
 
 const TOOLS = [
   "docker",
@@ -33,13 +123,13 @@ function redisRetryStrategy(times) {
   return Math.min(times * 200, 3000);
 }
 
-const redis = new Redis({
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: true,
-  retryStrategy: redisRetryStrategy,
-});
+// const redis = new Redis({
+//   host: REDIS_HOST,
+//   port: REDIS_PORT,
+//   maxRetriesPerRequest: null,
+//   enableReadyCheck: true,
+//   retryStrategy: redisRetryStrategy,
+// });
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 
@@ -192,19 +282,22 @@ app.get("/results", async (_req, res) => {
   }
 });
 
+app.get("/v3/api-docs", (_req, res) => res.json(swaggerSpec));
+app.use("/swagger-ui", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 async function start() {
-  for (let attempt = 1; attempt <= 30; attempt += 1) {
-    try {
-      await initDb();
-      break;
-    } catch (err) {
-      console.warn(
-        `attente postgres (${attempt}/30): ${err.message}`
-      );
-      await new Promise((r) => setTimeout(r, 2000));
-      if (attempt === 30) throw err;
-    }
-  }
+  // for (let attempt = 1; attempt <= 30; attempt += 1) {
+  //   try {
+  //     await initDb();
+  //     break;
+  //   } catch (err) {
+  //     console.warn(
+  //       `attente postgres (${attempt}/30): ${err.message}`
+  //     );
+  //     await new Promise((r) => setTimeout(r, 2000));
+  //     if (attempt === 30) throw err;
+  //   }
+  // }
 
   app.listen(PORT, () => {
     console.log(`santu-pulse-api écoute sur :${PORT}`);

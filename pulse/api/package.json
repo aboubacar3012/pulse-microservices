@@ -20,7 +20,9 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "ioredis": "^5.4.2",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@sonar/scan": "^5.0.2",

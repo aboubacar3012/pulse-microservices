@@ -8,10 +8,11 @@ pipeline {
         DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${GIT_COMMIT}"
         // Cache NVD / CVE pour OWASP Dependency-Check (persistant sur l'agent)
         OWASP_DATA_DIR  = '/var/lib/jenkins/dependency-check-data'
+        APPLICATION_URL = 'http://localhost:3000'
     }
 
     stages {
-        stage('Unit Tests and Coverage Jest') {
+        stage('Unit Tests and Coverage Jest Coverage') {
             when {
                 anyOf {
                     changeset 'pulse/api/**'
@@ -197,11 +198,60 @@ pipeline {
                 )
             }
         }
+
+        // stage('OWASP ZAP - DAST') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/api/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         dir('pulse/api') {
+        //             sh 'bash zap.sh'
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             publishHTML target: [
+        //                 allowMissing: true,
+        //                 alwaysLinkToLastBuild: true,
+        //                 keepAll: true,
+        //             ]
+        //             publishHTML target: [
+        //                 allowMissing: true,
+        //                 alwaysLinkToLastBuild: true,
+        //                 keepAll: true,
+        //                 reportDir: 'pulse/api/owasp',
+        //                 reportFiles: 'zap_report.html',
+        //                 reportName: 'OWASP ZAP'
+        //             ]
+        //         }
+        //     }
+        // }
     }
 
     post {
-        always {
-            echo 'Pipeline completed'
+        success {
+            echo 'Pipeline completed successfully'
+        }
+        failure {
+            echo 'Pipeline completed with failures'
+        }
+        unstable {
+            echo 'Pipeline completed with instabilities'
+        }
+        aborted {
+            echo 'Pipeline completed with abort'
+        }
+        changed {
+            echo 'Pipeline completed with changes'
+        }
+        notRun {
+            echo 'Pipeline completed with not run'
+        }
+        aborted {
+            echo 'Pipeline completed with abort'
         }
     }
 }
