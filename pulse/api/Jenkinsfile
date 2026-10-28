@@ -241,9 +241,6 @@ pipeline {
         unstable {
             echo 'Pipeline completed with instabilities'
         }
-        aborted {
-            echo 'Pipeline completed with abort'
-        }
         changed {
             echo 'Pipeline completed with changes'
         }
