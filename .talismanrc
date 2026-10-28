@@ -28,5 +28,5 @@ fileignoreconfig:
 - filename: setup/vm-install-script/jenkins.sh
   checksum: b39b217b458428ebadcf2c600029f1e36f0538f2b128b7e94a43acbc25a14f2e
 - filename: setup/vm-install-script/init-script.sh
-  checksum: 694b9222ce937e2f38f1314b17b3b3e97dbd79772e0b9308e040b9b516a6991f
+  checksum: 25514a0cd265f47c482c6d77107d01e6851b87c42f87bb2918df99ec56c76d75
 version: "1.0"
