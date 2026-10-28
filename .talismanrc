@@ -26,7 +26,7 @@ fileignoreconfig:
 - filename: pulse/api/zap.sh
   checksum: 72069606c66389e2364fa4709a2e62b5953eb8637ad2495d4a290fa33813db73
 - filename: setup/vm-install-script/jenkins.sh
-  checksum: 610ea960920d09447f41aef92545a500b09b26864423041c32fcacc1ef157c31
+  checksum: b425851be3c16ee320258539168433f91f6aa80e1a74e8bd47bc6a7143c3f529
 - filename: setup/vm-install-script/init-script.sh
   checksum: 25514a0cd265f47c482c6d77107d01e6851b87c42f87bb2918df99ec56c76d75
 version: "1.0"
