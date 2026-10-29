@@ -39,4 +39,12 @@ fileignoreconfig:
   checksum: 25ca3511d71982bc9f4e15ceabe5eb678f9c3af07b28d1216ab91abc3f6a4d84
 - filename: pulse/worker/Jenkinsfile
   checksum: 7cf94db3a1afac0ef9e506c0c4b1f7a08738d74b79a0ff2b62f324be6b8e89a5
+- filename: pulse/result/05-dns-resolver.envsh
+  checksum: 3b458c7834b1d5e85b49ecea46d8592494abd80ebe5b93627c473fed1249f55b
+- filename: pulse/vote/05-dns-resolver.envsh
+  checksum: c2991d1bb6d1ed0db9e822f2cb04573778f5bc93995ec3a72935e4c20fd25ac5
+- filename: pulse/result/nginx.conf
+  checksum: 0307cd9707fa88ee4695ec842cea584a7d7ac1d650a08a647c4fe084a13108cb
+- filename: pulse/vote/nginx.conf
+  checksum: 9b1e31612bbd20eea568faeebe902f55c0f259310b0d947d10952b125640f288
 version: "1.0"
