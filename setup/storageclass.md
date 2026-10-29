@@ -182,11 +182,3 @@ kubectl port-forward --namespace longhorn-system \
 ```
 
 Ouvrir <http://localhost:8080> sur cette même machine, puis arrêter le port-forward après usage. Pour une exposition permanente avec Traefik, suivre le guide officiel Longhorn sur [Ingress Traefik avec authentification](https://longhorn.io/docs/1.13.0/deploy/accessing-the-ui/longhorn-ingress-traefik/).
-
-## Références officielles
-
-- [Installation et prérequis Longhorn 1.13](https://longhorn.io/docs/1.13.0/deploy/install/)
-- [Installation avec Helm](https://longhorn.io/docs/1.13.0/deploy/install/install-with-helm/)
-- [Création de volumes et PVC](https://longhorn.io/docs/1.13.0/nodes-and-volumes/volumes/create-volumes/)
-- [Paramètres du StorageClass](https://longhorn.io/docs/1.13.0/references/storage-class-parameters/)
-- [Valeurs par défaut du chart Helm](https://github.com/longhorn/longhorn/blob/v1.13.0/chart/values.yaml)

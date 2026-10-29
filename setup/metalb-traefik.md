@@ -8,10 +8,10 @@ Le guide part du montage Lightsail déjà utilisé dans ce lab. Il faut remplace
 
 Dans **Lightsail → Instance → Networking**, autoriser :
 
-| Port | Protocole | Usage |
-|---|---|---|
-| 80 | TCP | Challenge HTTP Let's Encrypt |
-| 443 | TCP | Accès HTTPS aux Ingress |
+| Port | Protocole | Usage                        |
+| ---- | --------- | ---------------------------- |
+| 80   | TCP       | Challenge HTTP Let's Encrypt |
+| 443  | TCP       | Accès HTTPS aux Ingress      |
 
 Le DNS public de chaque application doit pointer vers l'**IP publique** de l'instance Lightsail. Le pool MetalLB, lui, utilise l'**IP privée** de l'instance.
 
@@ -220,13 +220,13 @@ curl -I https://grafana.example.com
 
 ## En cas de problème
 
-| Problème | Vérification |
-|---|---|
+| Problème                      | Vérification                                                                                                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `EXTERNAL-IP` reste `pending` | `kubectl describe svc traefik -n traefik` et `kubectl logs -n metallb-system deployment/controller` ; vérifier que l'IP dans le pool correspond à celle demandée par Traefik. |
-| Domaine inaccessible | Vérifier que le DNS `A` pointe vers l'IP publique Lightsail et que TCP/80 et TCP/443 sont autorisés. |
-| Certificat absent | Vérifier que le domaine est public, que TCP/80 est joignable et consulter les logs Traefik. |
-| Ingress retourne 404 | Vérifier `ingressClassName`, le domaine, le namespace, et le nom/port du Service backend. |
-| Pod Traefik reste `Pending` | Vérifier que le PVC est `Bound` et que le StorageClass `longhorn` existe. |
+| Domaine inaccessible          | Vérifier que le DNS `A` pointe vers l'IP publique Lightsail et que TCP/80 et TCP/443 sont autorisés.                                                                          |
+| Certificat absent             | Vérifier que le domaine est public, que TCP/80 est joignable et consulter les logs Traefik.                                                                                   |
+| Ingress retourne 404          | Vérifier `ingressClassName`, le domaine, le namespace, et le nom/port du Service backend.                                                                                     |
+| Pod Traefik reste `Pending`   | Vérifier que le PVC est `Bound` et que le StorageClass `longhorn` existe.                                                                                                     |
 
 ## Sécurité
 
@@ -235,5 +235,3 @@ curl -I https://grafana.example.com
 - Garder Grafana et ArgoCD protégés par leur authentification; HTTPS seul ne remplace pas l'authentification.
 - Ne pas ouvrir les NodePorts Traefik directement sur Internet.
 - Ne pas committer de mots de passe, tokens ou fichiers contenant des secrets.
-
-Documentation : [Traefik Helm chart](https://github.com/traefik/traefik-helm-chart), [MetalLB](https://metallb.io/installation/), [Longhorn](./longhorn/longhorn.md).

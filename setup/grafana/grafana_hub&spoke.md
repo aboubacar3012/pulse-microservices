@@ -16,10 +16,10 @@ Installer Longhorn sur le Spoke en suivant [`longhorn.md`](../longhorn/longhorn.
 
 Ressources de départ pour le lab :
 
-| Serveur | Instance Lightsail min. | Rôle |
-|---------|------------------------|------|
-| Spoke   | 2 GB RAM               | Prometheus + exporters |
-| Hub     | 1 GB RAM               | Grafana seul |
+| Serveur | Instance Lightsail min. | Rôle                   |
+| ------- | ----------------------- | ---------------------- |
+| Spoke   | 2 GB RAM                | Prometheus + exporters |
+| Hub     | 1 GB RAM                | Grafana seul           |
 
 Le Hub doit joindre l'IP privée du Spoke sur TCP/32090. Utiliser des instances Lightsail dans la même région.
 
@@ -236,12 +236,12 @@ Se connecter avec `admin` et le mot de passe défini dans le Secret.
 
 Dashboards recommandés pour démarrer :
 
-| Dashboard | ID | Ce qu'il affiche |
-|-----------|----|-----------------|
-| Kubernetes / Views / Global | `15757` | Vue d'ensemble cluster |
-| Kubernetes / Views / Nodes | `15760` | État et ressources des nœuds |
-| Kubernetes / Views / Namespaces | `15758` | Activité par namespace |
-| Kubernetes / Views / Pods | `15759` | État et ressources par pod |
+| Dashboard                       | ID      | Ce qu'il affiche             |
+| ------------------------------- | ------- | ---------------------------- |
+| Kubernetes / Views / Global     | `15757` | Vue d'ensemble cluster       |
+| Kubernetes / Views / Nodes      | `15760` | État et ressources des nœuds |
+| Kubernetes / Views / Namespaces | `15758` | Activité par namespace       |
+| Kubernetes / Views / Pods       | `15759` | État et ressources par pod   |
 
 Si les graphiques restent vides : vérifier que Prometheus est `UP` dans **Status > Targets** (`http://<IP-privée-Spoke>:32090/targets`) et que la bonne source de données est sélectionnée.
 
@@ -322,14 +322,14 @@ Créer un enregistrement DNS `A` pour `grafana.mondomaine.com` pointant vers l'I
 
 ## Troubleshooting
 
-| Symptôme | Cause probable | Solution |
-|----------|---------------|----------|
-| Pod Prometheus `Pending` | PVC non provisionné | Vérifier le PVC et Longhorn sur le Spoke; voir [`longhorn.md`](../longhorn/longhorn.md) |
-| `Save & test` échoue dans Grafana | Réseau Hub→Spoke bloqué | Vérifier le pare-feu Lightsail du Spoke (port 32090) et la connectivité privée |
-| `Save & test` échoue — timeout | Mauvaise IP ou mauvais port | Vérifier avec `curl http://<IP-Spoke>:32090/-/healthy` depuis le Hub |
-| Pod Grafana `OOMKilled` | Mémoire insuffisante | Augmenter les limits dans le Deployment |
-| Dashboards vides | Prometheus pas encore prêt | Attendre 2 min, vérifier `/targets` |
-| NodePort 32090 refusé | Port Lightsail fermé | **Console Lightsail → Networking → Add rule TCP 32090** |
+| Symptôme                          | Cause probable              | Solution                                                                                |
+| --------------------------------- | --------------------------- | --------------------------------------------------------------------------------------- |
+| Pod Prometheus `Pending`          | PVC non provisionné         | Vérifier le PVC et Longhorn sur le Spoke; voir [`longhorn.md`](../longhorn/longhorn.md) |
+| `Save & test` échoue dans Grafana | Réseau Hub→Spoke bloqué     | Vérifier le pare-feu Lightsail du Spoke (port 32090) et la connectivité privée          |
+| `Save & test` échoue — timeout    | Mauvaise IP ou mauvais port | Vérifier avec `curl http://<IP-Spoke>:32090/-/healthy` depuis le Hub                    |
+| Pod Grafana `OOMKilled`           | Mémoire insuffisante        | Augmenter les limits dans le Deployment                                                 |
+| Dashboards vides                  | Prometheus pas encore prêt  | Attendre 2 min, vérifier `/targets`                                                     |
+| NodePort 32090 refusé             | Port Lightsail fermé        | **Console Lightsail → Networking → Add rule TCP 32090**                                 |
 
 ### Commande de diagnostic rapide
 
@@ -357,10 +357,3 @@ Grafana :32000  ──────────→  Prometheus :32090
 
 Grafana sur le Hub affiche les métriques collectées par Prometheus sur le Spoke. Le seul flux réseau nécessaire est **Hub → Spoke:32090**.
 
----
-
-## Documentation officielle
-
-- [Chart kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
-- [Configuration Longhorn](../longhorn/longhorn.md)
-- [Grafana Docker image](https://hub.docker.com/r/grafana/grafana)

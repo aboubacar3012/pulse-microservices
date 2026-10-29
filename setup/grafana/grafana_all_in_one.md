@@ -153,9 +153,9 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
 
 Ouvrir les ports dans le pare-feu Lightsail : **Console → Instance → Networking → Add rule → TCP**.
 
-| Service | Port |
-|---|---:|
-| Grafana | 32000 |
+| Service    |  Port |
+| ---------- | ----: |
+| Grafana    | 32000 |
 | Prometheus | 32090 |
 
 ### Accéder aux interfaces
@@ -260,19 +260,10 @@ helm uninstall monitoring --namespace monitoring
 
 ## Troubleshooting rapide
 
-| Symptôme | Cause probable | Solution |
-|----------|---------------|----------|
-| Pod `Pending` indéfiniment | PVC non provisionné | Vérifier le PVC et le StorageClass Longhorn; voir [`longhorn.md`](../longhorn/longhorn.md) |
-| Pod `OOMKilled` | Instance trop petite | Utiliser le `lab-values.yaml` ou upgrader l'instance |
-| Grafana/Prometheus inaccessible | Port Lightsail fermé | Ouvrir le NodePort dans Console Lightsail → Networking |
-| Dashboards vides | Prometheus pas encore prêt | Attendre 2 min et vérifier `/targets` |
-| `Error: INSTALLATION FAILED: cannot re-use a name` | Release déjà installée | Remplacer `install` par `upgrade` ou utiliser `helm uninstall` d'abord |
-
----
-
-## Documentation officielle
-
-- [Chart kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
-- [Valeurs par défaut du chart](https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml) — `grafana.enabled` vaut `true` par défaut.
-- [Installation Traefik](../metalb-traefik.md)
-- [Configuration Longhorn](../longhorn/longhorn.md)
+| Symptôme                                           | Cause probable             | Solution                                                                                   |
+| -------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------ |
+| Pod `Pending` indéfiniment                         | PVC non provisionné        | Vérifier le PVC et le StorageClass Longhorn; voir [`longhorn.md`](../longhorn/longhorn.md) |
+| Pod `OOMKilled`                                    | Instance trop petite       | Utiliser le `lab-values.yaml` ou upgrader l'instance                                       |
+| Grafana/Prometheus inaccessible                    | Port Lightsail fermé       | Ouvrir le NodePort dans Console Lightsail → Networking                                     |
+| Dashboards vides                                   | Prometheus pas encore prêt | Attendre 2 min et vérifier `/targets`                                                      |
+| `Error: INSTALLATION FAILED: cannot re-use a name` | Release déjà installée     | Remplacer `install` par `upgrade` ou utiliser `helm uninstall` d'abord                     |

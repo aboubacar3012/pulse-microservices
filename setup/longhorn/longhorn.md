@@ -37,10 +37,10 @@ Ces paramètres ne constituent pas une réservation de capacité pour chaque app
 
 Le fichier Helm fixe les budgets suivants :
 
-| Composant | Request CPU / mémoire | Limite CPU / mémoire | Portée |
-|---|---:|---:|---|
-| Longhorn Manager | `100m` / `128Mi` | `1` vCPU / `1Gi` | Un pod Manager par nœud où Longhorn s'exécute |
-| Longhorn Global Manager | `100m` / `256Mi` | `1` vCPU / `1Gi` | Chaque pod Global Manager; le chart en déploie trois par défaut |
+| Composant               | Request CPU / mémoire | Limite CPU / mémoire | Portée                                                          |
+| ----------------------- | --------------------: | -------------------: | --------------------------------------------------------------- |
+| Longhorn Manager        |      `100m` / `128Mi` |     `1` vCPU / `1Gi` | Un pod Manager par nœud où Longhorn s'exécute                   |
+| Longhorn Global Manager |      `100m` / `256Mi` |     `1` vCPU / `1Gi` | Chaque pod Global Manager; le chart en déploie trois par défaut |
 
 Les **requests** servent au scheduler Kubernetes pour réserver des ressources et placer les pods. Les **limits** plafonnent leur consommation : une limite CPU peut entraîner du throttling sous charge; un dépassement de mémoire peut provoquer un OOMKill. Ces valeurs sont un point de départ modéré, pas des seuils universels ni une recommandation du fournisseur Longhorn. Le Global Manager garde en mémoire un cache qui évolue avec le nombre de pods dans le cluster; augmentez sa limite si vous observez une pression mémoire ou des redémarrages.
 

@@ -53,14 +53,14 @@ Instances **Lightsail** organisées en hub + cluster Kubernetes.
 Six composants. Quatre images custom + Redis / Postgres officiels.  
 Chaque microservice applicatif a son **Dockerfile** et son **README**. Redis et Postgres n’ont **pas** de Dockerfile custom.
 
-| Service       | Image Docker Hub (lab)     | Image locale (Compose) | Rôle                                    | Code / manifests                               |
-| ------------- | -------------------------- | ---------------------- | --------------------------------------- | ---------------------------------------------- |
-| **Vote UI**   | `aboubacar99/pulse-vote`   | `santu/pulse-vote`     | Interface de vote (React + nginx)       | `pulse/vote/` · `k8s-specifications/vote/`     |
-| **Result UI** | `aboubacar99/pulse-result` | `santu/pulse-result`   | Affichage des scores (React + nginx)    | `pulse/result/` · `k8s-specifications/result/` |
-| **API**       | `aboubacar99/pulse-api`    | `santu/pulse-api`      | REST : enqueue Redis + lecture Postgres | `pulse/api/` · `k8s-specifications/api/`       |
+| Service       | Image Docker Hub (lab)     | Image locale (Compose) | Rôle                                     | Code / manifests                               |
+| ------------- | -------------------------- | ---------------------- | ---------------------------------------- | ---------------------------------------------- |
+| **Vote UI**   | `aboubacar99/pulse-vote`   | `santu/pulse-vote`     | Interface de vote (React + nginx)        | `pulse/vote/` · `k8s-specifications/vote/`     |
+| **Result UI** | `aboubacar99/pulse-result` | `santu/pulse-result`   | Affichage des scores (React + nginx)     | `pulse/result/` · `k8s-specifications/result/` |
+| **API**       | `aboubacar99/pulse-api`    | `santu/pulse-api`      | REST : enqueue Redis + lecture Postgres  | `pulse/api/` · `k8s-specifications/api/`       |
 | **Worker**    | `aboubacar99/pulse-worker` | `santu/pulse-worker`   | Java 21 / Spring Boot : Redis → Postgres | `pulse/worker/` · `k8s-specifications/worker/` |
-| **Redis**     | `redis:7-alpine`           | idem                   | File de votes (`votes`)                 | `k8s-specifications/redis/`                    |
-| **Postgres**  | `postgres:16-alpine`       | idem                   | Persistance des votes                   | `k8s-specifications/db/`                       |
+| **Redis**     | `redis:7-alpine`           | idem                   | File de votes (`votes`)                  | `k8s-specifications/redis/`                    |
+| **Postgres**  | `postgres:16-alpine`       | idem                   | Persistance des votes                    | `k8s-specifications/db/`                       |
 
 Stack locale de démo : `pulse/docker-compose.yml` — ports `8080` (vote), `8081` (result), `3000` (API debug). Voir [`README.md`](./README.md).
 
