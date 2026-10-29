@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Vérifie que kubectl est disponible avant de continuer.
+# Vérifie que kubectl est disponible avant de continuer. updated
 if ! command -v kubectl >/dev/null 2>&1; then
     printf 'Error: kubectl is not installed or is not in PATH.\n' >&2
     exit 127
