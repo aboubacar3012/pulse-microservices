@@ -20,14 +20,14 @@ Le worker est un processus interne, sans port HTTP ni Service Kubernetes.
 
 ## Configuration
 
-| Variable | Défaut local | Compose / cluster |
-| --- | --- | --- |
-| `REDIS_HOST` | `localhost` | `redis` |
-| `REDIS_PORT` | `6379` | `6379` |
-| `DATABASE_URL` | `postgresql://pulse:pulse@localhost:5432/pulse` | URL PostgreSQL vers `db:5432/pulse` |
-| `SPRING_DATASOURCE_URL` | — | URL JDBC alternative, prioritaire sur `DATABASE_URL` |
-| `SPRING_DATASOURCE_USERNAME` | `pulse` | Utilisateur JDBC alternatif |
-| `SPRING_DATASOURCE_PASSWORD` | `pulse` | Mot de passe JDBC alternatif |
+| Variable                     | Défaut local                                    | Compose / cluster                                    |
+| ---------------------------- | ----------------------------------------------- | ---------------------------------------------------- |
+| `REDIS_HOST`                 | `localhost`                                     | `redis`                                              |
+| `REDIS_PORT`                 | `6379`                                          | `6379`                                               |
+| `DATABASE_URL`               | `postgresql://pulse:pulse@localhost:5432/pulse` | URL PostgreSQL vers `db:5432/pulse`                  |
+| `SPRING_DATASOURCE_URL`      | —                                               | URL JDBC alternative, prioritaire sur `DATABASE_URL` |
+| `SPRING_DATASOURCE_USERNAME` | `pulse`                                         | Utilisateur JDBC alternatif                          |
+| `SPRING_DATASOURCE_PASSWORD` | `pulse`                                         | Mot de passe JDBC alternatif                         |
 
 `DATABASE_URL` accepte les formes `postgres://`, `postgresql://` et `jdbc:postgresql://`. Pour une URL PostgreSQL classique, le worker la convertit en URL JDBC. Les identifiants peuvent aussi être fournis séparément avec les variables `SPRING_DATASOURCE_*`.
 
@@ -94,7 +94,7 @@ java -jar target/pulse-worker.jar
 
 Le JAR a besoin des mêmes variables de configuration que `mvn spring-boot:run`.
 
-## Build et exécution Docker
+## Build et exécution Docker updated
 
 Le build multi-étape compile et teste l’application avec Java 21, puis l’exécute sur une image JRE légère sans privilèges root :
 

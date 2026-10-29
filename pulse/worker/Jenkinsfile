@@ -2,7 +2,6 @@ pipeline {
     agent any
 
         environment {
-        BASE_IMAGE      = 'node:20-alpine'
         DOCKER_REGISTRY = 'aboubacar99'
         APP_NAME        = 'pulse-worker'
         DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${GIT_COMMIT}"
