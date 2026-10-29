@@ -16,7 +16,9 @@ pipeline {
                 }
             }
             steps {
-                sh 'mvn clean test'
+                dir('pulse/worker') {
+                    sh 'mvn clean test'
+                }
             }
             post {
                 always {
@@ -34,9 +36,10 @@ pipeline {
                 }
             }
             steps {
-                // On package sans relancer les tests (ils sont déjà passés)
-                sh 'mvn package -DskipTests=true'
-                archive 'target/*.jar'
+                dir('pulse/worker') {
+                    sh 'mvn package -DskipTests=true'
+                    archive 'target/*.jar'
+                }
             }
         }
 
