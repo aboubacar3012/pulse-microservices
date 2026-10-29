@@ -2,7 +2,7 @@
 
 Frontend React + TypeScript pour **voter** sur les outils DevOps (Pulse).
 
-## Rôle updated
+## Rôle
 
 - Affiche les 8 outils (Docker, Ansible, Kubernetes, Linux, Git, Terraform, Jenkins, AWS)
 - Bouton **Voter** / **Encore +1** (votes cumulables uniquement)

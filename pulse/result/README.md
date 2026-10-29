@@ -2,7 +2,7 @@
 
 Frontend React + TypeScript d’**affichage** des résultats Pulse (lecture seule).
 
-## Rôle updated
+## Rôle
 
 - Liste les outils DevOps avec le nombre total de votes publics
 - Polling `GET /results` toutes les 2 secondes (via `/api/results`)
