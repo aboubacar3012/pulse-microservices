@@ -1,98 +1,174 @@
-# Longhorn — architecture, stockage et limites de ressources
+# Installer et configurer Longhorn
 
-Ce document explique la configuration Longhorn installée par [`storageclass.md`](./storageclass.md), avec les valeurs Helm de [`longhorn/values.yaml`](./longhorn/values.yaml).
+Ce guide installe Longhorn sur un cluster kubeadm avec Helm, configure le StorageClass `longhorn` par défaut et teste un volume.
 
-## Ce que cette installation apporte
+Les commandes sont à lancer depuis la racine du dépôt, avec `kubectl` configuré pour le cluster cible. La configuration Helm se trouve dans [`values.yaml`](./values.yaml).
 
-Longhorn fournit du stockage bloc persistant à Kubernetes. Un PVC utilisant le StorageClass `longhorn` déclenche le provisionnement d'un volume Longhorn; le CSI driver permet ensuite à Kubernetes d'attacher et de monter ce volume dans un pod.
+## 1. Vérifier les prérequis
 
-La configuration retenue :
-
-- installe Longhorn **1.13.0** avec Helm dans `longhorn-system` ;
-- utilise le moteur de données **V1**, activé par défaut ;
-- utilise le chemin local `/var/lib/longhorn` pour les réplicas ;
-- crée des disques uniquement sur les nœuds explicitement labellisés `node.longhorn.io/create-default-disk=true` ;
-- crée le StorageClass `longhorn` et le définit comme classe par défaut ;
-- configure **3 réplicas** pour les nouveaux volumes ;
-- réserve au moins **25 %** de l'espace disque disponible et ne permet pas la surallocation de capacité au-delà de **100 %** ;
-- définit des requests et limites de ressources pour Longhorn Manager et Longhorn Global Manager.
-
-Longhorn est un système de stockage, **pas un système de sauvegarde**. Des réplicas peuvent protéger contre la perte d'un disque ou d'un nœud selon le placement, mais pas contre une suppression accidentelle, une corruption propagée ou la perte du cluster entier. Configurer un backup target externe et tester la restauration pour protéger les données.
-
-## Comment les données sont placées
-
-Lorsqu'un pod demande un PVC `ReadWriteOnce`, le provisionneur Longhorn crée un volume et répartit ses réplicas sur les nœuds et disques Longhorn éligibles. Avec `numberOfReplicas: "3"`, Longhorn vise trois copies indépendantes. Les trois copies consomment approximativement trois fois la capacité logique du volume, hors métadonnées et snapshots.
-
-Les trois réplicas doivent pouvoir être placés sur des nœuds de stockage distincts. Trois réplicas ne rendent pas un cluster à un ou deux nœuds hautement disponible. Pour un lab à un nœud, régler `persistence.defaultClassReplicaCount` à `1`; cela supprime la redondance. Pour deux nœuds, utiliser `2`, en comprenant que les deux copies dépendent de ces deux nœuds.
-
-Les données sont stockées sur le système de fichiers du disque Longhorn. Le chemin `/var/lib/longhorn` doit donc être placé sur un disque persistant et suffisamment grand, et non laissé par inadvertance sur une petite partition système. Le guide d'installation demande de monter le disque avant de labelliser le nœud afin que Longhorn ne crée pas son disque sur le mauvais volume.
-
-### Capacité et planification
-
-Le paramètre `storageOverProvisioningPercentage: 100` empêche Longhorn de planifier plus de capacité logique que la capacité disponible selon ses règles de planification. Avec `storageMinimalAvailablePercentage: 25`, Longhorn garde une marge minimale pour le disque.
-
-Ces paramètres ne constituent pas une réservation de capacité pour chaque application et ne remplacent pas la supervision. Il faut également tenir compte du nombre de réplicas, des snapshots, de la croissance des données et des opérations de reconstruction. Un volume logique de 10 GiB avec trois réplicas nécessite environ 30 GiB d'espace brut avant cette marge.
-
-## Limites CPU et mémoire configurées
-
-Le fichier Helm fixe les budgets suivants :
-
-| Composant               | Request CPU / mémoire | Limite CPU / mémoire | Portée                                                          |
-| ----------------------- | --------------------: | -------------------: | --------------------------------------------------------------- |
-| Longhorn Manager        |      `100m` / `128Mi` |     `1` vCPU / `1Gi` | Un pod Manager par nœud où Longhorn s'exécute                   |
-| Longhorn Global Manager |      `100m` / `256Mi` |     `1` vCPU / `1Gi` | Chaque pod Global Manager; le chart en déploie trois par défaut |
-
-Les **requests** servent au scheduler Kubernetes pour réserver des ressources et placer les pods. Les **limits** plafonnent leur consommation : une limite CPU peut entraîner du throttling sous charge; un dépassement de mémoire peut provoquer un OOMKill. Ces valeurs sont un point de départ modéré, pas des seuils universels ni une recommandation du fournisseur Longhorn. Le Global Manager garde en mémoire un cache qui évolue avec le nombre de pods dans le cluster; augmentez sa limite si vous observez une pression mémoire ou des redémarrages.
-
-Ces réglages ne plafonnent **pas** toute la consommation Longhorn :
-
-- le moteur V1 lance des composants de données et d'instance pour attacher et servir les volumes ;
-- les réplicas et reconstructions consomment CPU, mémoire et surtout E/S disque/réseau ;
-- certains composants du chart n'exposent pas de réglage `resources` dans les valeurs du chart 1.13.0.
-
-Ne pas appliquer une `ResourceQuota` générique à `longhorn-system` ni ajouter des limites arbitraires à tous les composants : cela peut empêcher les pods système ou les composants CSI de démarrer et rendre les volumes indisponibles. Observer d'abord les métriques et événements, puis dimensionner les limites de manière progressive.
-
-Les valeurs de ressources ne remplacent pas les prérequis matériels. Pour sa configuration de production recommandée avec V1, Longhorn indique trois nœuds, quatre vCPU et 4 GiB de mémoire par nœud, avec SSD/NVMe recommandé. Ces besoins incluent les workloads Kubernetes et la charge de stockage; les limites ci-dessus ne peuvent pas rendre adéquat un nœud trop petit.
-
-## Comment Kubernetes utilise le StorageClass par défaut
-
-Le StorageClass `longhorn` est marqué par défaut. Un PVC sans `storageClassName` peut alors être provisionné par Longhorn, ce qui facilite la création d'applications, mais peut aussi placer des données sur Longhorn sans décision explicite de l'équipe.
-
-Avant l'installation, vérifier les StorageClass existants. Éviter plusieurs StorageClass marqués par défaut. Pour les workloads importants, définir explicitement `storageClassName: longhorn` dans les PVC permet de rendre la dépendance visible et évite les surprises si le StorageClass par défaut change.
-
-La politique de récupération par défaut est `Delete` : supprimer un PVC peut supprimer le volume associé. Pour les données à conserver, vérifier le cycle de vie du workload, la politique du StorageClass et les sauvegardes avant de supprimer des PVC.
-
-## Accès à l'interface et sécurité
-
-L'interface Longhorn permet de gérer les volumes et les paramètres de stockage; elle n'active pas l'authentification par défaut lors d'une installation Helm. Le guide d'installation recommande un `kubectl port-forward` temporaire pour l'administration locale. Pour une exposition durable, utiliser HTTPS et authentification via une configuration Traefik protégée, comme décrit dans la documentation officielle Longhorn, et restreindre l'accès au personnel d'exploitation.
-
-Longhorn nécessite des composants privilégiés avec accès aux ressources système des hôtes pour gérer les volumes. Installer Longhorn uniquement sur un cluster et des nœuds de confiance, maintenir Kubernetes et Longhorn à jour, et ne pas exposer l'interface d'administration publiquement sans contrôle d'accès.
-
-## Vérifications d'exploitation
-
-Après installation ou lors d'un incident, contrôler :
+La configuration utilise Longhorn **1.13.0**, dont le chart exige Kubernetes **1.34 ou supérieur** :
 
 ```bash
-kubectl get pods -n longhorn-system
-kubectl get storageclass
-kubectl get nodes.longhorn.io -n longhorn-system
-kubectl get volumes.longhorn.io -n longhorn-system
-kubectl get events -n longhorn-system --sort-by=.lastTimestamp
+kubectl version
 ```
 
-Dans l'interface Longhorn, vérifier l'état des nœuds, des disques, des volumes et des réplicas. Surveiller en particulier :
+Sur chaque nœud Linux destiné au stockage, installer iSCSI :
 
-- les PVC bloqués en `Pending` ;
-- les volumes `Degraded` ou `Faulted` ;
-- les nœuds ou disques `NotReady` / `Unschedulable` ;
-- l'espace libre et la croissance des snapshots ;
-- les OOMKills, redémarrages ou événements de throttling des pods Longhorn ;
-- les erreurs iSCSI et les échecs d'attachement.
+```bash
+sudo apt-get update
+sudo apt-get install -y open-iscsi
+sudo systemctl enable --now iscsid
+sudo modprobe iscsi_tcp
+```
 
-## Références
+Pour utiliser des volumes RWX ou des sauvegardes NFS, installer aussi `nfs-common`.
 
-- [Guide d'installation](./storageclass.md)
-- [Valeurs Helm appliquées](./longhorn/values.yaml)
-- [Bonnes pratiques et matériel recommandé](https://longhorn.io/docs/1.13.0/best-practices/)
-- [Prérequis de la version 1.13.0](https://longhorn.io/docs/1.13.0/deploy/install/)
-- [Paramètres du StorageClass](https://longhorn.io/docs/1.13.0/references/storage-class-parameters/)
+Vérifier que iSCSI est actif :
+
+```bash
+systemctl is-active iscsid
+iscsiadm --version
+lsmod | grep iscsi_tcp
+```
+
+Ne pas utiliser `open-iscsi` **2.1.12** : Longhorn signale une incompatibilité critique.
+
+## 2. Préparer les disques
+
+Longhorn utilise `/var/lib/longhorn` et ne crée des disques que sur les nœuds portant le label configuré.
+
+Sur chaque nœud de stockage :
+
+1. Monter le disque persistant à `/var/lib/longhorn`.
+2. Vérifier son montage et l'espace disponible :
+
+```bash
+findmnt -T /var/lib/longhorn
+df -h /var/lib/longhorn
+```
+
+Puis, depuis une machine ayant accès au cluster, activer le nœud :
+
+```bash
+kubectl label node <NOM_DU_NOEUD> node.longhorn.io/create-default-disk=true
+```
+
+Répéter pour chaque nœud éligible. Ne pas appliquer ce label avant d'avoir monté le disque voulu.
+
+## 3. Installer Longhorn
+
+La configuration dans [`values.yaml`](./values.yaml) :
+
+- crée `longhorn` comme StorageClass par défaut et utilise `/var/lib/longhorn` ;
+- configure trois réplicas par volume; il faut trois nœuds de stockage, et les réplicas utilisent environ trois fois la capacité logique ;
+- réserve 25 % d'espace disque et limite la surallocation à 100 % ;
+- limite les ressources CPU/mémoire de Longhorn Manager et Global Manager.
+
+Pour un cluster à un seul nœud, régler `persistence.defaultClassReplicaCount` à `1` dans le fichier avant l'installation. Cela désactive la redondance des volumes.
+
+Vérifier les StorageClass existants avant installation :
+
+```bash
+kubectl get storageclass
+```
+
+La configuration marque `longhorn` comme StorageClass par défaut. Éviter d'avoir plusieurs classes par défaut.
+
+Installer la version configurée :
+
+```bash
+helm repo add longhorn https://charts.longhorn.io
+helm repo update
+helm upgrade --install longhorn longhorn/longhorn \
+  --namespace longhorn-system \
+  --create-namespace \
+  --version 1.13.0 \
+  --values setup/longhorn/values.yaml
+```
+
+Vérifier le déploiement :
+
+```bash
+kubectl rollout status deployment/longhorn-driver-deployer \
+  --namespace longhorn-system \
+  --timeout=300s
+kubectl get pods --namespace longhorn-system
+kubectl get storageclass
+kubectl get nodes.longhorn.io --namespace longhorn-system
+```
+
+Le StorageClass `longhorn` doit être marqué `(default)` et les nœuds/disques doivent être sains.
+
+## 4. Tester un volume
+
+Créer un PVC et un pod de test :
+
+```bash
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: longhorn-test
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: longhorn-test
+  namespace: default
+spec:
+  containers:
+    - name: test
+      image: busybox:1.36
+      command: ["sh", "-c", "echo longhorn-ok > /data/check.txt && cat /data/check.txt && sleep 3600"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: longhorn-test
+EOF
+```
+
+Vérifier le PVC et le pod :
+
+```bash
+kubectl get pvc,pod --namespace default
+kubectl logs longhorn-test --namespace default
+```
+
+Les journaux doivent afficher `longhorn-ok`. Après le test, supprimer les ressources de test (cela supprime le volume associé) :
+
+```bash
+kubectl delete pod longhorn-test --namespace default
+kubectl delete pvc longhorn-test --namespace default
+```
+
+## 5. Ouvrir l'interface d'administration
+
+L'interface Longhorn n'a pas d'authentification intégrée. Pour un accès temporaire, lancer :
+
+```bash
+kubectl port-forward --namespace longhorn-system \
+  service/longhorn-frontend 8080:80
+```
+
+Ouvrir <http://localhost:8080>, puis arrêter le port-forward après usage. Ne pas exposer l'interface publiquement sans HTTPS et authentification.
+
+## En cas de problème
+
+```bash
+kubectl get pods,pvc --all-namespaces
+kubectl get events --namespace longhorn-system --sort-by=.lastTimestamp
+kubectl get volumes.longhorn.io --namespace longhorn-system
+```
+
+Vérifier les événements du PVC bloqué, l'état des nœuds/disques Longhorn, l'espace libre et le service `iscsid`.
