@@ -47,4 +47,12 @@ fileignoreconfig:
   checksum: 0307cd9707fa88ee4695ec842cea584a7d7ac1d650a08a647c4fe084a13108cb
 - filename: pulse/vote/nginx.conf
   checksum: 9b1e31612bbd20eea568faeebe902f55c0f259310b0d947d10952b125640f288
+- filename: setup/grafana/grafana_all_in_one.md
+  checksum: 1485a84d1703efa9f1a55c3ab1335dc8599644275dd5c1959fea76b43859eddc
+- filename: setup/metalb-traefik.md
+  checksum: 6b1b9a9ef4bea7609d4b8d81672645e2d546116781937c39e81d1bae94244ff1
+- filename: setup/longhorn/longhorn.md
+  checksum: a766b49b12846ed274119bbe78269eb2a4d109654d4f7e6bd47c626134d1d92e
+- filename: setup/grafana/grafana_hub&spoke.md
+  checksum: 30a4bb93f12f0bc1ab07534b30a03e107b5bc620bb2b207ef49b8c3bf9eb83ec
 version: "1.0"

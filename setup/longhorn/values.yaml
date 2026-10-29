@@ -1,0 +1,31 @@
+# Longhorn Helm chart values.
+# Check chart compatibility with the Kubernetes server version before upgrading this pin.
+persistence:
+  createStorageClass: true
+  defaultClass: true
+  defaultClassReplicaCount: 3
+  defaultFsType: ext4
+
+longhornManager:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+longhornGlobalManager:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+defaultSettings:
+  createDefaultDiskLabeledNodes: true
+  defaultDataPath: /var/lib/longhorn
+  storageOverProvisioningPercentage: 100
+  storageMinimalAvailablePercentage: 25
