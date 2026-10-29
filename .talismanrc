@@ -29,4 +29,8 @@ fileignoreconfig:
   checksum: b425851be3c16ee320258539168433f91f6aa80e1a74e8bd47bc6a7143c3f529
 - filename: setup/vm-install-script/init-script.sh
   checksum: 25514a0cd265f47c482c6d77107d01e6851b87c42f87bb2918df99ec56c76d75
+- filename: pulse/worker/src/main/java/io/santu/pulse/worker/DatabaseConfiguration.java
+  checksum: a69791c3ef26ebcb664ecfa52ae5f537c70d732ce1630df92f0bbf1c3938d62a
+- filename: pulse/worker/src/test/java/io/santu/pulse/worker/DatabaseConfigurationTest.java
+  checksum: 03db4c97d471069eb9861a13cfb13ef5e0f8e873b7a574657235946d288e347e
 version: "1.0"
