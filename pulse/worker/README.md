@@ -109,6 +109,26 @@ docker run -d --name worker --network pulse-net \
 
 Pour les nœuds Kubernetes `linux/amd64`, construire l’image depuis ce dossier avec `docker buildx build --platform linux/amd64 -t santu/pulse-worker .`.
 
+## Déploiement Kubernetes avec les scripts réutilisables
+
+Les scripts `k8s.sh` et `k8s-rollout-status.sh` sont conçus pour être copiés dans un microservice qui suit la même convention de manifests :
+
+- un dossier `k8s/` contenant les manifests à appliquer ;
+- un `k8s/deployment.yaml` contenant le Deployment à surveiller.
+
+Depuis le dossier du microservice et avec `kubectl` déjà configuré sur le cluster cible :
+
+```bash
+bash k8s.sh
+bash k8s-rollout-status.sh
+```
+
+`k8s.sh` déploie à chaque exécution **tous les manifests présents dans `k8s/`, y compris ses sous-dossiers**. Il vérifie que `kubectl` et les manifests attendus sont présents, fait une validation locale puis une validation côté API Kubernetes (`--dry-run=server`) avant l’application réelle. Après l’application, il redémarre le Deployment défini dans `k8s/deployment.yaml` pour forcer le téléchargement d’une image `latest` nouvellement publiée. `k8s-rollout-status.sh` vérifie que la ressource existe, attend la fin du rollout puis attend explicitement la condition `Available`, avec un délai maximal de 180 secondes pour chaque attente.
+
+Toute erreur (manifest invalide, accès cluster insuffisant, image non téléchargeable, pod non prêt ou délai dépassé) arrête le script avec un code non nul. Aucun rollback automatique n’est effectué. Les scripts sont adaptés à la convention de manifests ci-dessus; les noms Kubernetes restent dans les fichiers YAML et ne nécessitent pas de variables shell.
+
+L’image `latest` est conservée pour correspondre au manifeste actuel. Pour un déploiement de production, privilégier un tag immuable (par exemple le SHA du commit) ou un digest d’image et mettre à jour le manifeste vers cet artefact précis.
+
 ## Logs
 
 ```bash
