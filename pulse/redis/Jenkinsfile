@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('K8S Deployment - DEV') {
+            when {
+                anyOf {
+                    changeset 'pulse/redis/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                withKubeConfig([credentialsId: 'kubeconfig']) {
+                    dir('pulse/redis') {
+                        sh 'bash k8s.sh'
+                        sh 'bash k8s-rollout-status.sh'
+                    }
+                }
+            }
+        }
+    }
+}

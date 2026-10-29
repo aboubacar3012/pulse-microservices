@@ -16,3 +16,4 @@
 **/reports/
 **/dependency-check-bin/
 **/owasp/
+**/kubeconfig
