@@ -1,29 +1,37 @@
-# SonarQube — serveur hub
+# Installer SonarQube sur le Hub
 
-Installation de **SonarQube** sur le hub (analyse statique / SAST).  
-CI Jenkins : voir [`pulse/api/README.md`](../../pulse/api/README.md) (stage `SonarQube`, credential `sonar-token`).
+## 1. Démarrer SonarQube
 
-## Lancer le conteneur
+Docker doit être installé sur le serveur. Lancer :
 
 ```bash
 docker run -d --name sonarqube \
+  --restart unless-stopped \
   -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true \
   -p 9000:9000 \
   sonarqube:latest
 ```
 
-`SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true` évite l’échec Elasticsearch sur une petite VM (mémoire / `vm.max_map_count`).
+Vérifier le démarrage :
 
-## Accès
+```bash
+docker ps --filter name=sonarqube
+docker logs -f sonarqube
+```
 
-|                         |                                                         |
-| ----------------------- | ------------------------------------------------------- |
-| URL                     | `http://<host-hub>:9000`                                |
-| Identifiants par défaut | `admin` / `admin` (changement demandé au premier login) |
+## 2. Ouvrir l'interface
 
-Exemples : IP publique Lightsail, ou un enregistrement DNS du type `sonar.santu.io` si tu en as un.
+Autoriser TCP/9000 dans le pare-feu du serveur, idéalement seulement depuis les IP autorisées, puis ouvrir :
 
-## Arrêt
+```text
+http://<IP-DU-HUB>:9000
+```
+
+Se connecter avec `admin` / `admin`, puis définir un nouveau mot de passe.
+
+Pour Jenkins et l'analyse du projet, voir [`pulse/api/README.md`](../pulse/api/README.md).
+
+## Arrêter ou supprimer
 
 ```bash
 docker stop sonarqube

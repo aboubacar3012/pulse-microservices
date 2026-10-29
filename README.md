@@ -204,4 +204,4 @@ docker rmi santu/pulse-vote santu/pulse-result santu/pulse-api santu/pulse-worke
 - PVC pour Postgres / déploiement EKS
 - Cache Redis des totaux côté `GET /results`
 
-SonarQube sur le hub : [`setup/vm-install-script/sonarqube.md`](setup/vm-install-script/sonarqube.md).
+SonarQube sur le hub : [`setup/sonarqube.md`](setup/sonarqube.md).

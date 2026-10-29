@@ -1,12 +1,12 @@
-# Installer et configurer Longhorn
+# Installer Longhorn
 
-Ce guide installe Longhorn sur un cluster kubeadm avec Helm, configure le StorageClass `longhorn` par défaut et teste un volume.
+Cette procédure installe Longhorn **1.13.0**, configure `longhorn` comme StorageClass par défaut et vérifie le stockage.
 
-Les commandes sont à lancer depuis la racine du dépôt, avec `kubectl` configuré pour le cluster cible. La configuration Helm se trouve dans [`values.yaml`](./values.yaml).
+Exécuter les commandes depuis la racine du dépôt avec `kubectl` configuré pour le cluster cible. Les valeurs sont dans [`values.yaml`](./values.yaml).
 
-## 1. Vérifier les prérequis
+## 1. Préparer les nœuds
 
-La configuration utilise Longhorn **1.13.0**, dont le chart exige Kubernetes **1.34 ou supérieur** :
+Longhorn 1.13.0 nécessite Kubernetes 1.34 ou supérieur :
 
 ```bash
 kubectl version
@@ -21,60 +21,39 @@ sudo systemctl enable --now iscsid
 sudo modprobe iscsi_tcp
 ```
 
-Pour utiliser des volumes RWX ou des sauvegardes NFS, installer aussi `nfs-common`.
-
-Vérifier que iSCSI est actif :
+Vérifier :
 
 ```bash
 systemctl is-active iscsid
 iscsiadm --version
-lsmod | grep iscsi_tcp
 ```
 
-Ne pas utiliser `open-iscsi` **2.1.12** : Longhorn signale une incompatibilité critique.
+Ne pas utiliser `open-iscsi` 2.1.12. Pour les volumes RWX ou sauvegardes NFS, installer aussi `nfs-common`.
 
-## 2. Préparer les disques
-
-Longhorn utilise `/var/lib/longhorn` et ne crée des disques que sur les nœuds portant le label configuré.
-
-Sur chaque nœud de stockage :
-
-1. Monter le disque persistant à `/var/lib/longhorn`.
-2. Vérifier son montage et l'espace disponible :
+Monter un disque persistant à `/var/lib/longhorn` sur chaque nœud de stockage :
 
 ```bash
 findmnt -T /var/lib/longhorn
 df -h /var/lib/longhorn
 ```
 
-Puis, depuis une machine ayant accès au cluster, activer le nœud :
+Après vérification du montage, labelliser chaque nœud depuis la machine d'administration :
 
 ```bash
 kubectl label node <NOM_DU_NOEUD> node.longhorn.io/create-default-disk=true
 ```
 
-Répéter pour chaque nœud éligible. Ne pas appliquer ce label avant d'avoir monté le disque voulu.
+## 2. Installer Longhorn
 
-## 3. Installer Longhorn
+Le fichier [`values.yaml`](./values.yaml) configure les limites CPU/mémoire et les seuils d'espace disque. Il crée trois réplicas par volume : prévoir trois nœuds de stockage; pour un cluster à un seul nœud, régler `persistence.defaultClassReplicaCount: 1` dans ce fichier avant l'installation.
 
-La configuration dans [`values.yaml`](./values.yaml) :
-
-- crée `longhorn` comme StorageClass par défaut et utilise `/var/lib/longhorn` ;
-- configure trois réplicas par volume; il faut trois nœuds de stockage, et les réplicas utilisent environ trois fois la capacité logique ;
-- réserve 25 % d'espace disque et limite la surallocation à 100 % ;
-- limite les ressources CPU/mémoire de Longhorn Manager et Global Manager.
-
-Pour un cluster à un seul nœud, régler `persistence.defaultClassReplicaCount` à `1` dans le fichier avant l'installation. Cela désactive la redondance des volumes.
-
-Vérifier les StorageClass existants avant installation :
+Vérifier les StorageClass existants :
 
 ```bash
 kubectl get storageclass
 ```
 
-La configuration marque `longhorn` comme StorageClass par défaut. Éviter d'avoir plusieurs classes par défaut.
-
-Installer la version configurée :
+Puis installer :
 
 ```bash
 helm repo add longhorn https://charts.longhorn.io
@@ -86,20 +65,20 @@ helm upgrade --install longhorn longhorn/longhorn \
   --values setup/longhorn/values.yaml
 ```
 
-Vérifier le déploiement :
+Attendre la disponibilité et vérifier le StorageClass :
 
 ```bash
 kubectl rollout status deployment/longhorn-driver-deployer \
   --namespace longhorn-system \
   --timeout=300s
-kubectl get pods --namespace longhorn-system
+kubectl get pods -n longhorn-system
 kubectl get storageclass
-kubectl get nodes.longhorn.io --namespace longhorn-system
+kubectl get nodes.longhorn.io -n longhorn-system
 ```
 
-Le StorageClass `longhorn` doit être marqué `(default)` et les nœuds/disques doivent être sains.
+`longhorn` doit apparaître comme classe par défaut et les nœuds/disques doivent être prêts.
 
-## 4. Tester un volume
+## 3. Tester un volume
 
 Créer un PVC et un pod de test :
 
@@ -109,10 +88,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: longhorn-test
-  namespace: default
 spec:
-  accessModes:
-    - ReadWriteOnce
+  accessModes: [ReadWriteOnce]
   storageClassName: longhorn
   resources:
     requests:
@@ -122,7 +99,6 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: longhorn-test
-  namespace: default
 spec:
   containers:
     - name: test
@@ -138,37 +114,35 @@ spec:
 EOF
 ```
 
-Vérifier le PVC et le pod :
+Vérifier que le PVC est `Bound` et que les logs affichent `longhorn-ok` :
 
 ```bash
-kubectl get pvc,pod --namespace default
-kubectl logs longhorn-test --namespace default
+kubectl get pvc,pod
+kubectl logs longhorn-test
 ```
 
-Les journaux doivent afficher `longhorn-ok`. Après le test, supprimer les ressources de test (cela supprime le volume associé) :
+Le PVC doit être `Bound` et les logs doivent afficher `longhorn-ok`.
+
+Après le test, supprimer les ressources (le volume de test sera supprimé) :
 
 ```bash
-kubectl delete pod longhorn-test --namespace default
-kubectl delete pvc longhorn-test --namespace default
+kubectl delete pod longhorn-test
+kubectl delete pvc longhorn-test
 ```
 
-## 5. Ouvrir l'interface d'administration
+## 4. Ouvrir l'interface d'administration
 
-L'interface Longhorn n'a pas d'authentification intégrée. Pour un accès temporaire, lancer :
+L'interface n'a pas d'authentification intégrée. Pour un accès temporaire :
 
 ```bash
-kubectl port-forward --namespace longhorn-system \
-  service/longhorn-frontend 8080:80
+kubectl port-forward -n longhorn-system service/longhorn-frontend 8080:80
 ```
 
-Ouvrir <http://localhost:8080>, puis arrêter le port-forward après usage. Ne pas exposer l'interface publiquement sans HTTPS et authentification.
+Ouvrir <http://localhost:8080>. Ne pas exposer l'interface publiquement sans HTTPS et authentification.
 
-## En cas de problème
+En cas de problème :
 
 ```bash
-kubectl get pods,pvc --all-namespaces
-kubectl get events --namespace longhorn-system --sort-by=.lastTimestamp
-kubectl get volumes.longhorn.io --namespace longhorn-system
+kubectl get pods,pvc -A
+kubectl get events -n longhorn-system --sort-by=.lastTimestamp
 ```
-
-Vérifier les événements du PVC bloqué, l'état des nœuds/disques Longhorn, l'espace libre et le service `iscsid`.
