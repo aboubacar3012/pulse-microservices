@@ -17,7 +17,7 @@ pipeline {
             }
             steps {
                 dir('pulse/worker') {
-                    sh 'mvn clean test'
+                    // sh 'mvn clean test'
                     sh 'mvn clean verify'
                 }
             }
