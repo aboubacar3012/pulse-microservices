@@ -28,6 +28,7 @@ DNS internes (Compose & K8s) : `api`, `redis`, `db`. Les frontends appellent `/a
 ## Prérequis
 
 - Docker + Docker Compose
+- JDK 21+ et Maven 3.9+ pour compiler/tester le worker hors Docker
 - Ports libres : `8080` (vote), `8081` (résultats) — `3000` optionnel (debug API)
 
 ## Démarrage rapide (docker compose)
@@ -88,13 +89,13 @@ docker run -d --name result --network pulse-net -p 8081:80 santu/pulse-result
 
 → http://localhost:8080 · http://localhost:8081
 
-La table `votes` est créée au démarrage de l’API ou du worker.
+La table `votes` est créée au démarrage de l’API ou du worker. Le worker Java convertit automatiquement la forme PostgreSQL de `DATABASE_URL` en configuration JDBC.
 
 ## Déployer sur Kubernetes (manuel)
 
 Manifests : [`k8s-specifications/`](k8s-specifications/) (en lab, synchronisés aussi via Argo CD — voir [architecture](./explication_de_larchitecture_du_lab.md)).
 
-> Les Dockerfiles forcent **`linux/amd64`**. Sur Mac, Vite compile en natif (`$BUILDPLATFORM`) puis nginx est packagé amd64.
+> Pour les nœuds Kubernetes `linux/amd64`, utiliser `--platform linux/amd64` lors du buildx. Sur Mac, les frontends compilent sur la plateforme de build avant de produire l’image cible.
 
 ### 1. Build & push (Docker Hub)
 
@@ -139,20 +140,14 @@ kubectl delete -f k8s-specifications/
 
 ## Tests unitaires & couverture
 
-Pas de Java → pas de JaCoCo. Équivalent par stack : Jest / Vitest (v8) / pytest-cov.
-
 ```bash
 # API (Jest + mocks Redis/Postgres)
 cd pulse/api && npm ci && npm test
 npm run test:coverage          # → coverage/index.html
 
-# Worker (pytest + pytest-cov, via venv)
-cd pulse/worker
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt
-pytest -q
-pytest --cov=worker --cov-report=term-missing --cov-report=html --cov-report=lcov
-# → htmlcov/index.html
+# Worker (Java 21 + Maven + JaCoCo)
+(cd pulse/worker && mvn test)
+# → pulse/worker/target/site/jacoco/index.html
 
 # Frontends (Vitest + @vitest/coverage-v8)
 cd pulse/vote && npm ci && npm test && npm run test:coverage

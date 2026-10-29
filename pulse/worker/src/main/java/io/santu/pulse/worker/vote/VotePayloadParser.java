@@ -1,9 +1,11 @@
 package io.santu.pulse.worker.vote;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
 import java.util.Optional;
 
 @Component
@@ -16,10 +18,14 @@ public class VotePayloadParser {
     }
 
     public Optional<Vote> parse(String payload) {
+        if (payload == null) {
+            return Optional.empty();
+        }
+
         JsonNode data;
         try {
             data = objectMapper.readTree(payload);
-        } catch (Exception ex) {
+        } catch (JsonProcessingException ex) {
             return Optional.empty();
         }
 
@@ -33,20 +39,14 @@ public class VotePayloadParser {
         }
 
         String sessionId = text(data, "sessionId")
-                .or(() -> text(data, "session_id"))
                 .map(this::normalize)
                 .filter(value -> !value.isEmpty())
+                .or(() -> text(data, "session_id")
+                        .map(this::normalize)
+                        .filter(value -> !value.isEmpty()))
                 .orElse(null);
 
         return Optional.of(new Vote(tool, sessionId));
-    }
-
-    static String normalizeSessionId(Object raw) {
-        if (raw == null) {
-            return null;
-        }
-        String value = String.valueOf(raw).strip().toLowerCase();
-        return value.isEmpty() ? null : value;
     }
 
     private Optional<String> text(JsonNode data, String field) {
@@ -58,6 +58,6 @@ public class VotePayloadParser {
     }
 
     private String normalize(String raw) {
-        return raw.strip().toLowerCase();
+        return raw.strip().toLowerCase(Locale.ROOT);
     }
 }

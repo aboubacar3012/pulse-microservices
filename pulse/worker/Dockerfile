@@ -1,19 +1,12 @@
-# Image toujours linux/amd64 (nodes K8s), même depuis un Mac arm64.
-
-# --- deps ---
-FROM --platform=linux/amd64 python:3.12-slim AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /build
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+COPY pom.xml .
+COPY src ./src
+RUN mvn -B verify
 
-# --- runtime ---
-FROM --platform=linux/amd64 python:3.12-slim
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-
-RUN useradd -r -u 10001 -m app
-
-COPY --from=builder /install /usr/local
-COPY worker.py .
-
-USER app
-CMD ["python", "-u", "worker.py"]
+RUN addgroup -S app && adduser -S -G app -u 10001 app
+COPY --from=builder /build/target/pulse-worker.jar ./pulse-worker.jar
+USER 10001:10001
+ENTRYPOINT ["java", "-jar", "/app/pulse-worker.jar"]

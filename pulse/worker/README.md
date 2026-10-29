@@ -1,77 +1,113 @@
 # santu/pulse-worker
 
-Worker Python de **Pulse** : lit la file Redis `votes` et écrit chaque vote dans Postgres.
+Worker de **Pulse** développé avec Java 21 et Spring Boot. Il consomme les votes de la liste Redis `votes` et les enregistre dans Postgres.
 
-## Rôle
+## Fonctionnement
 
-- `BRPOP` sur la file `votes`
-- `INSERT` d’une ligne par vote (outil DevOps + `session_id`)
-- Reconnexion automatique à Redis / Postgres
+- Blocage sur `BRPOP` de la file `votes` (attente de 5 secondes).
+- Validation du JSON et de l’outil (`docker`, `ansible`, `kubernetes`, `linux`, `git`, `terraform`, `jenkins`, `aws`).
+- Insertion d’une ligne dans `votes` avec l’outil et le `session_id`.
+- Création/mise à niveau de la table et de ses index au démarrage.
+- Nouvelle tentative avec journalisation en cas d’indisponibilité de Redis ou Postgres.
 
-Aucun port exposé — process **interne** uniquement (pas de Service K8s, comme voting-app).
+Le worker est un processus interne, sans port HTTP ni Service Kubernetes.
 
-## Variables d’environnement
+## Prérequis
 
-| Variable       | Défaut (dev local)                            | En cluster / Compose |
-| -------------- | --------------------------------------------- | -------------------- |
-| `REDIS_HOST`   | `localhost`                                   | `redis`              |
-| `REDIS_PORT`   | `6379`                                        | `6379`               |
-| `DATABASE_URL` | `postgres://pulse:pulse@localhost:5432/pulse` | `...@db:5432/pulse`  |
+- JDK 21 ou plus récent
+- Maven 3.9+
+- Redis sur `localhost:6379` et Postgres sur `localhost:5432` pour lancer le worker localement
 
-## Tests
+## Configuration
 
-Les tests unitaires (`test_worker.py`) importent `worker.py`, qui dépend de `psycopg2` et `redis`.  
-Il faut donc un **venv** avec les deps — pas le `pytest` global du système (sinon `ModuleNotFoundError: psycopg2`).
+| Variable | Défaut local | Compose / cluster |
+| --- | --- | --- |
+| `REDIS_HOST` | `localhost` | `redis` |
+| `REDIS_PORT` | `6379` | `6379` |
+| `DATABASE_URL` | `postgresql://pulse:pulse@localhost:5432/pulse` | URL PostgreSQL vers `db:5432/pulse` |
+| `SPRING_DATASOURCE_URL` | — | URL JDBC alternative, prioritaire sur `DATABASE_URL` |
+| `SPRING_DATASOURCE_USERNAME` | `pulse` | Utilisateur JDBC alternatif |
+| `SPRING_DATASOURCE_PASSWORD` | `pulse` | Mot de passe JDBC alternatif |
 
-Depuis ce dossier (`pulse/worker`) :
+`DATABASE_URL` accepte les formes `postgres://`, `postgresql://` et `jdbc:postgresql://`. Pour une URL PostgreSQL classique, le worker la convertit en URL JDBC. Les identifiants peuvent aussi être fournis séparément avec les variables `SPRING_DATASOURCE_*`.
+
+## Lancer le projet avec Maven
+
+Depuis la racine du dépôt, démarrer d’abord Redis et Postgres si nécessaire :
+
+```bash
+docker compose -f pulse/docker-compose.yml up -d redis db
+```
+
+Puis lancer l’application en mode développement :
+
+```bash
+cd pulse/worker
+mvn spring-boot:run
+```
+
+Le worker utilise par défaut les services locaux et reste actif tant qu’il tourne. Il attend que Postgres et Redis soient disponibles, puis consomme la file `votes`. Arrêter avec `Ctrl+C`.
+
+Pour configurer les connexions explicitement :
+
+```bash
+REDIS_HOST=localhost \
+REDIS_PORT=6379 \
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/pulse \
+SPRING_DATASOURCE_USERNAME=pulse \
+SPRING_DATASOURCE_PASSWORD=pulse \
+mvn spring-boot:run
+```
+
+## Tests et couverture
+
+La suite comprend des tests du parsing des messages, de la configuration PostgreSQL, du traitement des votes, de l’initialisation du schéma et des scénarios de reprise après erreur Redis/Postgres.
 
 ```bash
 cd pulse/worker
 
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements-dev.txt
+# Exécuter tous les tests unitaires
+mvn test
 
-pytest -q
-pytest --cov=worker --cov-report=term-missing --cov-report=html --cov-report=lcov
+# Nettoyer, tester, générer le rapport et vérifier le seuil de couverture
+mvn clean verify
 ```
 
-Relancer plus tard (venv déjà créé) :
+JaCoCo impose au minimum **89 % de couverture des lignes** sur l’ensemble du code de production. `mvn verify` échoue si le seuil n’est pas atteint.
+
+Rapport HTML après les tests : `target/site/jacoco/index.html`.
+
+## Packager et exécuter le JAR
 
 ```bash
 cd pulse/worker
-source .venv/bin/activate
-pytest -q
-pytest --cov=worker --cov-report=term-missing --cov-report=html --cov-report=lcov
+
+# Compiler et générer target/pulse-worker.jar
+mvn clean package
+
+# Vérifier aussi le seuil de couverture (recommandé avant livraison)
+mvn clean verify
+
+# Lancer le JAR exécutable Spring Boot
+java -jar target/pulse-worker.jar
 ```
 
-Depuis la racine `microservices/` :
+Le JAR a besoin des mêmes variables de configuration que `mvn spring-boot:run`.
+
+## Build et exécution Docker
+
+Le build multi-étape compile et teste l’application avec Java 21, puis l’exécute sur une image JRE légère sans privilèges root :
 
 ```bash
-pulse/worker/.venv/bin/pytest -q pulse/worker
-pulse/worker/.venv/bin/pytest --cov=worker --cov-report=term-missing \
-  --cov-report=html:pulse/worker/htmlcov \
-  --cov-report=lcov:pulse/worker/coverage.lcov \
-  pulse/worker
-```
-
-Rapport HTML : `htmlcov/index.html`.  
-`.venv/`, `htmlcov/`, `.coverage` et `coverage/` sont ignorés par git.
-
-## Build
-
-```bash
+cd pulse/worker
 docker build -t santu/pulse-worker .
-```
-
-## Run
-
-```bash
 docker run -d --name worker --network pulse-net \
   -e REDIS_HOST=redis \
-  -e DATABASE_URL=postgres://pulse:pulse@db:5432/pulse \
+  -e DATABASE_URL=postgresql://pulse:pulse@db:5432/pulse \
   santu/pulse-worker
 ```
+
+Pour les nœuds Kubernetes `linux/amd64`, construire l’image depuis ce dossier avec `docker buildx build --platform linux/amd64 -t santu/pulse-worker .`.
 
 ## Logs
 

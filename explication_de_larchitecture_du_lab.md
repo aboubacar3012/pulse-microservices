@@ -58,7 +58,7 @@ Chaque microservice applicatif a son **Dockerfile** et son **README**. Redis et 
 | **Vote UI**   | `aboubacar99/pulse-vote`   | `santu/pulse-vote`     | Interface de vote (React + nginx)       | `pulse/vote/` · `k8s-specifications/vote/`     |
 | **Result UI** | `aboubacar99/pulse-result` | `santu/pulse-result`   | Affichage des scores (React + nginx)    | `pulse/result/` · `k8s-specifications/result/` |
 | **API**       | `aboubacar99/pulse-api`    | `santu/pulse-api`      | REST : enqueue Redis + lecture Postgres | `pulse/api/` · `k8s-specifications/api/`       |
-| **Worker**    | `aboubacar99/pulse-worker` | `santu/pulse-worker`   | Consomme Redis → écrit Postgres         | `pulse/worker/` · `k8s-specifications/worker/` |
+| **Worker**    | `aboubacar99/pulse-worker` | `santu/pulse-worker`   | Java 21 / Spring Boot : Redis → Postgres | `pulse/worker/` · `k8s-specifications/worker/` |
 | **Redis**     | `redis:7-alpine`           | idem                   | File de votes (`votes`)                 | `k8s-specifications/redis/`                    |
 | **Postgres**  | `postgres:16-alpine`       | idem                   | Persistance des votes                   | `k8s-specifications/db/`                       |
 
@@ -187,7 +187,7 @@ microservices/
 ├── pulse/                                   ← code applicatif
 │   ├── docker-compose.yml                   # stack locale (style voting-app)
 │   ├── api/          # Node.js + Dockerfile + Jenkinsfile + README
-│   ├── worker/       # Python + Dockerfile + Jenkinsfile + README
+│   ├── worker/       # Java 21 + Spring Boot + Dockerfile + Jenkinsfile + README
 │   ├── vote/         # React/TS + nginx + Dockerfile + Jenkinsfile + README
 │   └── result/       # React/TS + nginx + Dockerfile + Jenkinsfile + README
 ├── k8s-specifications/                      ← manifests GitOps (Argo CD)
