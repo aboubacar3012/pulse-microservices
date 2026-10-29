@@ -7,37 +7,37 @@ pipeline {
     }
     stages {
         stage('Build') {
-                when {
-                    anyOf {
-                        changeset 'pulse/vote/**'
-                        buildingTag()
+            when {
+                anyOf {
+                    changeset 'pulse/vote/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
+                    dir('pulse/vote') {
+                        sh 'docker build -t ${DOCKER_IMAGE} .'
+                        sh 'docker push ${DOCKER_IMAGE}'
+                        sh 'docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}/${APP_NAME}:latest'
+                        sh 'docker push ${DOCKER_REGISTRY}/${APP_NAME}:latest'
                     }
                 }
-                steps {
-                    withDockerRegistry([credentialsId: 'docker-hub', url: '']) {
-                        dir('pulse/vote') {
-                            sh 'docker build -t ${DOCKER_IMAGE} .'
-                            sh 'docker push ${DOCKER_IMAGE}'
-                            sh 'docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}/${APP_NAME}:latest'
-                            sh 'docker push ${DOCKER_REGISTRY}/${APP_NAME}:latest'
-                        }
-                    }
-                }
-        }
-    }
-
-    stage('K8S Deployment - DEV') {
-        when {
-            anyOf {
-                changeset 'pulse/vote/**'
-                buildingTag()
             }
         }
-        steps {
-            withKubeConfig([credentialsId: 'kubeconfig']) {
-                dir('pulse/vote') {
-                    sh 'bash k8s.sh'
-                    sh 'bash k8s-rollout-status.sh'
+
+        stage('K8S Deployment - DEV') {
+            when {
+                anyOf {
+                    changeset 'pulse/vote/**'
+                    buildingTag()
+                }
+            }
+            steps {
+                withKubeConfig([credentialsId: 'kubeconfig']) {
+                    dir('pulse/vote') {
+                        sh 'bash k8s.sh'
+                        sh 'bash k8s-rollout-status.sh'
+                    }
                 }
             }
         }
