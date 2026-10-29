@@ -14,7 +14,9 @@ RUN npm run build
 
 # --- runtime (amd64) ---
 FROM --platform=linux/amd64 nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY 05-dns-resolver.envsh /docker-entrypoint.d/05-dns-resolver.envsh
+RUN chmod +x /docker-entrypoint.d/05-dns-resolver.envsh
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

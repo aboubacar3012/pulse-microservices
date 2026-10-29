@@ -1,0 +1,11 @@
+resolver="$(awk '$1 == "nameserver" { print $2; exit }' /etc/resolv.conf)"
+if [ -z "$resolver" ]; then
+    echo "Error: no DNS nameserver found in /etc/resolv.conf" >&2
+    exit 1
+fi
+
+case "$resolver" in
+    *:*) resolver="[$resolver]" ;;
+esac
+
+export NGINX_RESOLVER="$resolver"

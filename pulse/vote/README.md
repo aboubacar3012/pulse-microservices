@@ -18,9 +18,11 @@ Le runtime de l’image n’est pas Node : c’est **nginx** qui sert le build V
 | Rôle | Détail |
 | ---- | ------ |
 | Serveur web | Fichiers statiques + `try_files` (SPA React) + `/healthz` |
-| Proxy `/api/` | Relaye vers `http://api:3000` **depuis le container** (où le DNS `api` existe) |
+| Proxy `/api/` | Relaye vers le Service DNS `api:3000`, résolu à la demande via le DNS du container |
 
 **Problème résolu :** le JS tourne dans le navigateur, qui ne connaît pas `api`. Sans proxy, il faudrait une URL publique vers l’API. Avec le proxy, le navigateur appelle `/api/...` sur vote ; nginx (dans Docker/K8s) parle à l’API ClusterIP.
+
+Nginx lit le nameserver du container au démarrage et résout `api` lors des requêtes. Le frontend peut donc démarrer avant que le Service API soit disponible ; les appels `/api/` échoueront jusqu’à ce que ce Service soit joignable.
 
 ## Variables de build updated
 
