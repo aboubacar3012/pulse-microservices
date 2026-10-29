@@ -18,12 +18,13 @@ pipeline {
             steps {
                 dir('pulse/worker') {
                     sh 'mvn clean test'
+                    sh 'mvn clean verify'
                 }
             }
             post {
                 always {
-                    junit 'target/surefire-reports/*.xml'
-                    jacoco execPattern: 'target/jacoco.exec'
+                    junit 'pulse/worker/target/surefire-reports/*.xml'
+                    jacoco execPattern: 'pulse/worker/target/jacoco.exec'
                 }
             }
         }
