@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.dao.DataAccessException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,7 @@ public class VoteWorker implements ApplicationRunner {
     private final Duration queueTimeout;
     private final Duration retryDelay;
 
+    @Autowired
     public VoteWorker(
             StringRedisTemplate redis,
             JdbcTemplate jdbcTemplate,

@@ -65,7 +65,7 @@ spec:
               memory: 32Mi
       containers:
         - name: api
-          image: aboubacar99/pulse-api:94a40f2056e8431be3b058cbcb334253f26ae27c
+          image: aboubacar99/pulse-api:latest
           imagePullPolicy: Always
           securityContext:
             runAsNonRoot: true

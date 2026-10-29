@@ -35,4 +35,6 @@ fileignoreconfig:
   checksum: 03db4c97d471069eb9861a13cfb13ef5e0f8e873b7a574657235946d288e347e
 - filename: pulse/result/k8s/deployment.yaml
   checksum: 4fa94252a750fad437567a44a470e5eb59b1f61d9b35c7b3e186f1210fe75c4b
+- filename: setup/service_account_for_k8s.md
+  checksum: 25ca3511d71982bc9f4e15ceabe5eb678f9c3af07b28d1216ab91abc3f6a4d84
 version: "1.0"
