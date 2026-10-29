@@ -89,3 +89,12 @@ if [[ -f /var/lib/jenkins/secrets/initialAdminPassword ]]; then
 else
   echo "⚠️ Fichier initialAdminPassword absent."
 fi
+
+
+# # Vérifier les groupes de l'utilisateur jenkins
+# id jenkins
+# sudo usermod -aG docker jenkins
+# sudo systemctl restart jenkins
+# sudo systemctl status jenkins
+# # Simuler une commande Docker en tant que jenkins
+# sudo -u jenkins docker ps
