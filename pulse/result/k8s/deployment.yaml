@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: result
+  name: result
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: result
+  template:
+    metadata:
+      labels:
+        app: result
+    spec:
+      containers:
+        - image: aboubacar99/pulse-result:4ae922f025c29284aaff22a7621cfba211ec9f27
+          imagePullPolicy: Always
+          name: result
+          ports:
+            - containerPort: 80
+              name: result

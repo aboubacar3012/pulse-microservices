@@ -33,4 +33,6 @@ fileignoreconfig:
   checksum: a69791c3ef26ebcb664ecfa52ae5f537c70d732ce1630df92f0bbf1c3938d62a
 - filename: pulse/worker/src/test/java/io/santu/pulse/worker/DatabaseConfigurationTest.java
   checksum: 03db4c97d471069eb9861a13cfb13ef5e0f8e873b7a574657235946d288e347e
+- filename: pulse/result/k8s/deployment.yaml
+  checksum: 4fa94252a750fad437567a44a470e5eb59b1f61d9b35c7b3e186f1210fe75c4b
 version: "1.0"
