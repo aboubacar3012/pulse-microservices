@@ -37,4 +37,6 @@ fileignoreconfig:
   checksum: 4fa94252a750fad437567a44a470e5eb59b1f61d9b35c7b3e186f1210fe75c4b
 - filename: setup/service_account_for_k8s.md
   checksum: 25ca3511d71982bc9f4e15ceabe5eb678f9c3af07b28d1216ab91abc3f6a4d84
+- filename: pulse/worker/Jenkinsfile
+  checksum: 7cf94db3a1afac0ef9e506c0c4b1f7a08738d74b79a0ff2b62f324be6b8e89a5
 version: "1.0"
