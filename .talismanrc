@@ -55,4 +55,8 @@ fileignoreconfig:
   checksum: 9ce7a763583d422a3a681b840f0d24fe85b30e61df969d7da4d38b7d4d9bfb67
 - filename: setup/argocd.md
   checksum: be630883f02638c44cae6dfd97df371d4009805bd2394d0489da52aa950b3612
+- filename: setup/bitnami-sealed-secrets.md
+  checksum: 4ea4fb17a5e37ed5cf9d7e72dd3ff1d1fcd9892222495e140dfa1a07765c91fa
+- filename: setup/setup_kubeadm_cluster.md
+  checksum: 8d0a255f634e5052b0090dcb5411e49c317ae5babac9be2c49ed81d1ad2ad1cd
 version: "1.0"
