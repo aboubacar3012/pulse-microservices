@@ -5,7 +5,7 @@ Prometheus collecte les métriques sur le Spoke; Grafana sur le Hub les affiche.
 ## 1. Préparer les clusters
 
 - Configurer `kubectl` sur le cluster Spoke, puis sur le Hub au moment des commandes correspondantes.
-- Installer Longhorn sur le Spoke : [guide Longhorn](../longhorn/longhorn.md).
+- Installer `local-path` sur le Spoke : [guide local-path](../local-path/local-path.md).
 - Dans Lightsail, placer Hub et Spoke dans la même région. Le Hub doit pouvoir joindre l'IP privée du Spoke sur TCP/32090.
 
 ## 2. Installer Prometheus sur le Spoke
@@ -32,7 +32,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: longhorn
+          storageClassName: local-path
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
@@ -168,7 +168,7 @@ Cliquer sur **Save & test**. Le résultat doit indiquer que la source de donnée
 
 ## Option — Persister les données Grafana
 
-Installer Longhorn sur le Hub, puis ajouter ce PVC dans `grafana.yaml` :
+Installer `local-path` sur le Hub, puis ajouter ce PVC dans `grafana.yaml`. Le volume Grafana sera lié au nœud où il est provisionné :
 
 ```yaml
 apiVersion: v1
@@ -177,7 +177,7 @@ metadata:
   name: grafana-data
   namespace: monitoring
 spec:
-  storageClassName: longhorn
+  storageClassName: local-path
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:

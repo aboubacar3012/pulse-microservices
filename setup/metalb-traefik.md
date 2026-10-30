@@ -12,7 +12,7 @@ Récupérer l'IP privée de l'instance :
 hostname -I
 ```
 
-Le DNS `A` de chaque domaine doit pointer vers l'IP publique Lightsail. Le pool MetalLB utilise l'IP privée. Installer Longhorn avant Traefik pour conserver le fichier ACME : [guide Longhorn](./longhorn/longhorn.md).
+Le DNS `A` de chaque domaine doit pointer vers l'IP publique Lightsail. Le pool MetalLB utilise l'IP privée. Installer `local-path` avant Traefik pour conserver le fichier ACME : [guide local-path](./local-path/local-path.md). Les données restent sur le nœud où le volume est créé.
 
 ## 2. Installer MetalLB
 
@@ -34,7 +34,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-    - 172.26.8.148/32
+    - 172.26.3.27/32
   autoAssign: false
 ---
 apiVersion: metallb.io/v1beta1
@@ -72,7 +72,7 @@ service:
   enabled: true
   annotations:
     metallb.io/address-pool: traefik-pool
-    metallb.io/loadBalancerIPs: "172.26.8.148"
+    metallb.io/loadBalancerIPs: "172.26.3.27"
   spec:
     type: LoadBalancer
 
@@ -80,11 +80,11 @@ persistence:
   enabled: true
   accessMode: ReadWriteOnce
   size: 128Mi
-  storageClass: longhorn
+  storageClass: local-path
   path: /data
 
 additionalArguments:
-  - "--certificatesresolvers.le-resolver.acme.email=admin@example.com"
+  - "--certificatesresolvers.le-resolver.acme.email=a.diallo3012@gmail.com"
   - "--certificatesresolvers.le-resolver.acme.storage=/data/acme.json"
   - "--certificatesresolvers.le-resolver.acme.httpchallenge.entrypoint=web"
 ```

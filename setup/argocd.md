@@ -61,9 +61,13 @@ kubectl patch configmap argocd-cmd-params-cm -n argocd \
   --type merge -p '{"data":{"server.insecure":"true"}}'
 kubectl rollout restart deployment argocd-server -n argocd
 kubectl rollout status deployment argocd-server -n argocd --timeout=300s
+kubectl get configmap argocd-cmd-params-cm -n argocd \
+  -o jsonpath='{.data.server\.insecure}'; echo
 ```
 
-Créer `argocd-ingress.yaml` et remplacer `argocd.example.com` par votre domaine :
+La dernière commande doit afficher `true`. Ce réglage désactive TLS **entre Traefik et Argo CD uniquement**; Traefik termine toujours la connexion HTTPS publique.
+
+Créer `argocd-ingress.yaml` et remplacer `gitops-practices-argocd.santu.io` par votre domaine :
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -77,7 +81,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: argocd.example.com
+    - host: gitops-practices-argocd.santu.io
       http:
         paths:
           - path: /
@@ -89,7 +93,7 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - argocd.example.com
+        - gitops-practices-argocd.santu.io
 ```
 
 Appliquer et vérifier :
@@ -99,9 +103,53 @@ kubectl apply -f argocd-ingress.yaml
 kubectl get ingress -n argocd
 ```
 
-Ouvrir `https://argocd.example.com`. Si l'Ingress fonctionne, remettre le service en `ClusterIP` pour ne plus l'exposer aussi par NodePort :
+Ouvrir `https://gitops-practices-argocd.santu.io`. Si l'Ingress fonctionne, remettre le service en `ClusterIP` pour ne plus l'exposer aussi par NodePort :
 
 ```bash
 kubectl patch service argocd-server -n argocd \
   --type merge -p '{"spec":{"type":"ClusterIP"}}'
+kubectl get service argocd-server -n argocd
 ```
+
+## Dépannage de l'accès via Traefik
+
+Vérifier d'abord que les pods et services sont prêts et que l'Ingress cible bien le service Argo CD :
+
+```bash
+kubectl get pods -n traefik -o wide
+kubectl get service traefik -n traefik -o wide
+kubectl get ingress argocd-server -n argocd -o wide
+kubectl describe ingress argocd-server -n argocd
+kubectl get service argocd-server -n argocd
+kubectl get endpointslice -n argocd \
+  -l kubernetes.io/service-name=argocd-server
+kubectl get configmap argocd-cmd-params-cm -n argocd \
+  -o jsonpath='{.data.server\.insecure}'; echo
+```
+
+Le service Traefik doit avoir une adresse externe, l'Ingress doit afficher la bonne classe et le bon nom d'hôte, et l'EndpointSlice Argo CD doit contenir au moins une adresse. Le service `argocd-server` doit être en `ClusterIP` pour l'accès par Ingress.
+
+Consulter les événements et les journaux si l'un de ces éléments n'est pas prêt :
+
+```bash
+kubectl get events -n traefik --sort-by=.lastTimestamp
+kubectl get events -n argocd --sort-by=.lastTimestamp
+kubectl logs deployment/traefik -n traefik --since=10m
+kubectl logs deployment/argocd-server -n argocd --since=10m
+```
+
+Tester le routage depuis le nœud ou une machine qui peut joindre l'adresse privée MetalLB :
+
+```bash
+curl -vk --connect-timeout 5 \
+  --resolve gitops-practices-argocd.santu.io:443:172.26.3.27 \
+  https://gitops-practices-argocd.santu.io/
+```
+
+Une réponse `200` confirme le routage HTTPS interne jusqu'à Argo CD. Pour vérifier l'accès public à l'origine sans passer par le DNS Cloudflare, lancer depuis une machine **hors du serveur** la même commande en remplaçant `172.26.3.27` par l'adresse IPv4 publique de Lightsail. Vérifier également que :
+
+- le DNS public du domaine pointe vers l'adresse IPv4 publique de Lightsail (de préférence une IP statique), pas vers l'adresse privée MetalLB;
+- les règles réseau Lightsail autorisent les connexions entrantes TCP sur les ports `443` et `80`;
+- le port `443` est ouvert, car le navigateur se connecte en HTTPS.
+
+Si le test interne répond mais que le test externe échoue, vérifier le DNS, l'adresse publique et les règles réseau Lightsail. Une erreur Cloudflare `522` indique que Cloudflare n'obtient pas de réponse de l'origine; le patch `server.insecure` ne configure ni le DNS ni le pare-feu.

@@ -5,8 +5,8 @@ Installation de `kube-prometheus-stack` avec Helm. Grafana est activé par défa
 ## 1. Prérequis
 
 - Cluster Kubernetes, `kubectl` et Helm configurés.
-- Longhorn installé : [guide Longhorn](../longhorn/longhorn.md).
-- StorageClass `longhorn` disponible :
+- `local-path` installé : [guide local-path](../local-path/local-path.md).
+- StorageClass `local-path` disponible :
 
 ```bash
 kubectl get storageclass
@@ -37,7 +37,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: longhorn
+          storageClassName: local-path
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:

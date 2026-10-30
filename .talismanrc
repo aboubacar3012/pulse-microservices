@@ -48,11 +48,11 @@ fileignoreconfig:
 - filename: pulse/vote/nginx.conf
   checksum: 9b1e31612bbd20eea568faeebe902f55c0f259310b0d947d10952b125640f288
 - filename: setup/grafana/grafana_all_in_one.md
-  checksum: 1485a84d1703efa9f1a55c3ab1335dc8599644275dd5c1959fea76b43859eddc
-- filename: setup/longhorn/longhorn.md
-  checksum: a766b49b12846ed274119bbe78269eb2a4d109654d4f7e6bd47c626134d1d92e
+  checksum: b89d13b7231681d43f122f8ed44e04c493403ffa3f0eaa39587b2af8dbf9637f
 - filename: setup/grafana/grafana_hub&spoke.md
-  checksum: 0d769aea35ab6c4d665fdee475b036bb7a9d62fa92dbddf17d899dc4daae716f
+  checksum: 08a1ca0d0ce98d7ec97a9c3066bd1a9d1ba939fbd6cd8c6502f7cbeb231cf1d3
 - filename: setup/metalb-traefik.md
-  checksum: 1fa9a98b7721df9ff0f4415365fc218b4eb2ca74a6d0b892781c2f25f99e66ee
+  checksum: 9ce7a763583d422a3a681b840f0d24fe85b30e61df969d7da4d38b7d4d9bfb67
+- filename: setup/argocd.md
+  checksum: be630883f02638c44cae6dfd97df371d4009805bd2394d0489da52aa950b3612
 version: "1.0"
