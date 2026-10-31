@@ -59,4 +59,6 @@ fileignoreconfig:
   checksum: 4ea4fb17a5e37ed5cf9d7e72dd3ff1d1fcd9892222495e140dfa1a07765c91fa
 - filename: setup/setup_kubeadm_cluster.md
   checksum: 8d0a255f634e5052b0090dcb5411e49c317ae5babac9be2c49ed81d1ad2ad1cd
+- filename: setup/bitnami-sealed-secrets.md
+  checksum: de1b5a5013d5c377d7796ebde7c4e24032184c617da22470801353ddb38f4e64
 version: "1.0"

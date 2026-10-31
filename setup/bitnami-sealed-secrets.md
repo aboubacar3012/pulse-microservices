@@ -6,30 +6,40 @@ Le principe est le même pour les mots de passe, clés API, fichiers de configur
 
 Les clés privées de chiffrement du contrôleur sont nécessaires pour déchiffrer les Sealed Secrets existants après une restauration ou une migration du cluster. Les sauvegarder de manière sécurisée, séparément du dépôt Git, et ne jamais les partager.
 
-## 1. Installer le contrôleur dans le cluster
+## 1. Installer le contrôleur avec Helm
 
-Appliquer le manifeste officiel versionné :
+Cette procédure utilise le chart Bitnami [`sealed-secrets`](https://artifacthub.io/packages/helm/bitnami/sealed-secrets), version `2.5.19`, qui déploie le contrôleur `0.31.0`. Elle nécessite Helm 3.8 ou ultérieur et un contexte `kubectl` pointant vers le cluster cible.
+
+> **Installation existante :** ne pas exécuter directement ces commandes si un contrôleur Sealed Secrets est déjà installé, notamment avec le manifeste Kubernetes utilisé dans une version précédente de ce guide. Helm ne convertit pas automatiquement les ressources existantes et les Sealed Secrets dépendent des clés privées de leur contrôleur. Sauvegarder ces clés de façon sécurisée et planifier leur réutilisation/migration avant de remplacer le contrôleur. Ne jamais démarrer deux contrôleurs utilisant des clés différentes pour les mêmes Sealed Secrets.
+
+Installer le chart depuis son registre OCI. Le nom complet et le namespace sont fixés pour conserver les valeurs attendues par `kubeseal` (`sealed-secrets-controller` dans `kube-system`) :
 
 ```bash
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.3/controller.yaml
+helm upgrade --install sealed-secrets \
+  oci://registry-1.docker.io/bitnamicharts/sealed-secrets \
+  --version 2.5.19 \
+  --namespace kube-system \
+  --set fullnameOverride=sealed-secrets-controller \
+  --wait \
+  --timeout 5m
 ```
 
-Attendre que le contrôleur soit prêt :
+Vérifier le déploiement, le service et la release :
 
 ```bash
 kubectl rollout status deployment/sealed-secrets-controller \
   --namespace kube-system \
   --timeout=180s
-kubectl get pods --namespace kube-system \
-  -l name=sealed-secrets-controller
+kubectl get pods,services --namespace kube-system | grep sealed-secrets
+helm status sealed-secrets --namespace kube-system
 ```
 
 ## 2. Installer `kubeseal` sur la machine d'administration
 
-Cette commande installe la version Linux amd64. Pour un autre système ou une autre architecture, télécharger l'archive correspondante depuis la page des [versions de Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets/releases).
+Installer la version du client `kubeseal` correspondant au contrôleur (`0.31.0`). Cette commande installe la version Linux amd64. Pour un autre système ou une autre architecture, télécharger l'archive correspondante depuis la page des [versions de Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets/releases).
 
 ```bash
-KUBESEAL_VERSION='0.27.3'
+KUBESEAL_VERSION='0.31.0'
 curl -OL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
 tar -xzf "kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz" kubeseal
 sudo install -m 755 kubeseal /usr/local/bin/kubeseal
@@ -39,7 +49,10 @@ rm "kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz" kubeseal
 Vérifier que `kubeseal` peut récupérer le certificat public du contrôleur :
 
 ```bash
-kubeseal --fetch-cert
+kubeseal \
+  --controller-name sealed-secrets-controller \
+  --controller-namespace kube-system \
+  --fetch-cert
 ```
 
 Si la commande indique que le service `sealed-secrets-controller` est introuvable, vérifier le nom et le namespace réels :
@@ -48,26 +61,20 @@ Si la commande indique que le service `sealed-secrets-controller` est introuvabl
 kubectl get services --all-namespaces | grep -i sealed
 ```
 
-Puis préciser ceux-ci avec les options `--controller-name` et `--controller-namespace` dans les commandes `kubeseal`.
+Le nom et le namespace ci-dessus correspondent aux valeurs fixées à l'installation Helm. Si vous les personnalisez, passer les valeurs réelles avec `--controller-name` et `--controller-namespace` dans toutes les commandes `kubeseal`.
 
 ## 3. Créer et chiffrer un Secret
 
 Un Secret Kubernetes est propre à un namespace. Définir le namespace et le nom du Secret à créer. L'exemple utilise `development` et `app-credentials` ; les remplacer par les valeurs adaptées :
 
-```bash
-NAMESPACE=development
-SECRET_NAME=app-credentials
-kubectl get namespace "$NAMESPACE"
-```
-
 Les commandes suivantes illustrent un Secret générique contenant deux clés. Remplacer les noms de clés et les valeurs d'exemple par ceux requis par l'application :
 
 ```bash
 umask 077
-kubectl create secret generic "$SECRET_NAME" \
+kubectl create secret generic app-crds \
   --from-literal=username='REMPLACER_PAR_LA_VALEUR' \
   --from-literal=password='REMPLACER_PAR_LA_VALEUR' \
-  --namespace="$NAMESPACE" \
+  --namespace=secret-app \
   --dry-run=client -o yaml > secret-plain.yaml
 ```
 
@@ -76,10 +83,10 @@ kubectl create secret generic "$SECRET_NAME" \
 Pour créer un Secret à partir de fichiers, utiliser une option `--from-file` pour chaque clé. Les fichiers sources doivent rester locaux et ne pas être committés :
 
 ```bash
-kubectl create secret generic "$SECRET_NAME" \
+kubectl create secret generic app-crds \
   --from-file=username=./username.txt \
   --from-file=./app-credential.txt \
-  --namespace="$NAMESPACE" \
+  --namespace=secret-app \
   --dry-run=client -o yaml > secret-plain.yaml
 ```
 
@@ -88,7 +95,10 @@ Avec `--from-file=./app-credential.txt`, le nom du fichier devient la clé `app-
 Chiffrer le manifeste. Par défaut, le chiffrement est lié au nom et au namespace du Secret : conserver ces valeurs dans le manifeste final.
 
 ```bash
-kubeseal --format yaml < secret-plain.yaml > secret-sealed.yaml &&
+kubeseal \
+  --controller-name sealed-secrets-controller \
+  --controller-namespace kube-system \
+  --format yaml < secret-plain.yaml > secret-sealed.yaml &&
   rm secret-plain.yaml &&
 kubectl apply -f secret-sealed.yaml
 ```
@@ -103,7 +113,7 @@ Vérifier que le contrôleur a créé le Secret dans le namespace attendu :
 
 ```bash
 NAMESPACE=development
-SECRET_NAME=app-credentials
+SECRET_NAME=app-crds
 kubectl get sealedsecret "$SECRET_NAME" --namespace "$NAMESPACE"
 kubectl describe sealedsecret "$SECRET_NAME" --namespace "$NAMESPACE"
 kubectl get secret "$SECRET_NAME" --namespace "$NAMESPACE"
@@ -163,7 +173,10 @@ kubectl create secret docker-registry k8s-dev-registry-pull \
   --docker-password="$DOCKER_PASSWORD" \
   --namespace=development \
   --dry-run=client -o yaml > secret-plain.yaml &&
-  kubeseal --format yaml < secret-plain.yaml > secret-sealed.yaml &&
+  kubeseal \
+    --controller-name sealed-secrets-controller \
+    --controller-namespace kube-system \
+    --format yaml < secret-plain.yaml > secret-sealed.yaml &&
   rm secret-plain.yaml &&
   kubectl apply -f secret-sealed.yaml
 unset DOCKER_PASSWORD DOCKER_USERNAME
