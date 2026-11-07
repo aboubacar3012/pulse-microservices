@@ -291,7 +291,7 @@ kubectl get events --all-namespaces --sort-by=.lastTimestamp
 
 Un cluster peut démarrer sans `StorageClass`. Une application qui demande un PVC a toutefois besoin d'une StorageClass et d'un provisionneur compatibles. Choisir une solution selon les besoins :
 
-- **Stockage local simple** : suivre le [guide d'installation de local-path](./local-path-storage-class.md). C'est une option simple pour un lab ; les données résident sur un seul nœud, sans réplication ni bascule automatique.
+- **Stockage local simple** : suivre le [guide d'installation de local-path](./local-path-storage-class.md). Avec Lightsail, consulter aussi le [guide de disque Lightsail pour local-path](./ebs-local-storage.md) ; un disque de stockage Lightsail n'est pas un volume EBS EC2. Les données résident sur un seul nœud, sans réplication ni bascule automatique.
 - **Stockage réseau ou distribué** : installer un système adapté à l'infrastructure et aux objectifs de disponibilité. Vérifier les prérequis, la compatibilité et la procédure de sauvegarde propres à cette solution.
 
 Une StorageClass peut être définie par défaut ou sélectionnée explicitement dans le PVC avec `storageClassName`. Ne pas supposer qu'une classe existe déjà :

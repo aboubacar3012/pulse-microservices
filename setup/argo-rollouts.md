@@ -1,10 +1,10 @@
 # Installer Argo Rollouts et accéder au dashboard
 
-Argo Rollouts ajoute à Kubernetes des déploiements progressifs, notamment Canary et Blue-Green. Ce guide installe le contrôleur et le plugin `kubectl`, lance le dashboard depuis la CLI, permet d'y accéder au moyen d'un tunnel SSH, puis vérifie le fonctionnement avec un Rollout Canary de démonstration.
+Argo Rollouts ajoute à Kubernetes des déploiements progressifs, notamment Canary et Blue-Green. Ce guide installe le contrôleur et le plugin `kubectl`, décrit l'accès recommandé au dashboard avec un tunnel SSH, propose aussi son déploiement optionnel derrière un `NodePort`, puis vérifie le fonctionnement avec un Rollout Canary de démonstration.
 
 Les commandes supposent que `kubectl` est configuré pour le cluster cible et que l'utilisateur peut créer des ressources cluster-scoped (CRD, rôles et bindings). L'exemple utilise Argo Rollouts **v1.10.1** ; vérifier la compatibilité avec la version Kubernetes du cluster avant une installation différente.
 
-> **Sécurité :** le dashboard n'a pas d'authentification intégrée. Il utilise les identifiants et les permissions Kubernetes de l'utilisateur qui lance la commande. Le tunnel SSH garde le port du dashboard sur la boucle locale : ne pas le lier à `0.0.0.0` et ne pas ouvrir le port `3100` dans le pare-feu ou sur Internet.
+> **Sécurité :** le dashboard n'a pas d'authentification intégrée. L'accès par CLI utilise les identifiants et les permissions Kubernetes de l'utilisateur qui lance la commande. Le tunnel SSH garde le port du dashboard sur la boucle locale : ne pas le lier à `0.0.0.0` et ne pas ouvrir le port `3100` dans le pare-feu. Le `NodePort` est une option moins sûre : ne l'activer que si nécessaire et limiter son accès à une IP d'administration de confiance.
 
 ## 1. Installer le contrôleur
 
@@ -33,6 +33,24 @@ Vérifier que la CRD des Rollouts est disponible :
 
 ```bash
 kubectl get crd rollouts.argoproj.io
+```
+
+Si l'application du manifeste affiche `metadata.annotations: Too long` pour `rollouts.argoproj.io` ou `analysisruns.argoproj.io`, ces CRD volumineuses dépassent la limite de l'annotation utilisée par `kubectl apply` en mode client. Appliquer uniquement les CRD manquantes avec Server-Side Apply :
+
+```bash
+kubectl apply --server-side \
+  -f https://raw.githubusercontent.com/argoproj/argo-rollouts/v1.10.1/manifests/crds/rollout-crd.yaml \
+  -f https://raw.githubusercontent.com/argoproj/argo-rollouts/v1.10.1/manifests/crds/analysis-run-crd.yaml
+```
+
+Attendre que Kubernetes les ait établies, puis vérifier :
+
+```bash
+kubectl wait --for condition=Established \
+  crd/rollouts.argoproj.io \
+  crd/analysisruns.argoproj.io \
+  --timeout=120s
+kubectl get crd rollouts.argoproj.io analysisruns.argoproj.io
 ```
 
 ## 2. Installer le plugin CLI
@@ -70,10 +88,13 @@ Garder cette commande active. Le terminal doit annoncer que le dashboard est dis
 
 ### Depuis l'ordinateur d'administration
 
-Dans un second terminal de l'ordinateur, ouvrir le tunnel SSH. Remplacer l'utilisateur et l'adresse publique par ceux du serveur :
+Dans un second terminal de l'ordinateur, protéger le fichier de clé privée puis ouvrir le tunnel SSH. Placer `gitops-practices.pem` dans `~/.ssh/` et remplacer l'adresse publique par celle du serveur :
 
 ```bash
-ssh -N -L 3100:127.0.0.1:3100 ubuntu@IP_PUBLIQUE_DU_SERVEUR
+chmod 400 ~/.ssh/gitops-practices.pem
+ssh -i ~/.ssh/gitops-practices.pem \
+  -N -L 3100:127.0.0.1:3100 \
+  ubuntu@100.29.247.143
 ```
 
 Garder cette connexion SSH active et ouvrir <http://localhost:3100/rollouts> dans le navigateur. Lorsque la consultation est terminée, fermer le tunnel avec `Ctrl+C`, puis arrêter le dashboard sur le serveur avec `Ctrl+C`.
@@ -81,10 +102,85 @@ Garder cette connexion SSH active et ouvrir <http://localhost:3100/rollouts> dan
 Le port `3100` n'a pas besoin d'être ouvert dans le pare-feu du serveur ou du fournisseur cloud. Il suffit que SSH soit accessible depuis l'ordinateur d'administration. Si le port local `3100` est déjà utilisé, choisir par exemple `13100` côté ordinateur :
 
 ```bash
-ssh -N -L 13100:127.0.0.1:3100 ubuntu@IP_PUBLIQUE_DU_SERVEUR
+ssh -i ~/.ssh/gitops-practices.pem \
+  -N -L 13100:127.0.0.1:3100 \
+  ubuntu@IP_PUBLIQUE_DU_SERVEUR
 ```
 
 Dans ce cas, ouvrir <http://localhost:13100/rollouts>.
+
+## Option — Déployer le dashboard avec un NodePort
+
+Utiliser cette option à la place du tunnel SSH si l'accès direct par navigateur est nécessaire. Le NodePort expose le dashboard en HTTP et sans authentification. Son ServiceAccount dispose de permissions Kubernetes étendues sur les Rollouts et les Deployments : toute personne qui atteint le dashboard peut effectuer des opérations avec ces permissions. Ne pas autoriser l'accès depuis toutes les adresses Internet.
+
+Déployer le dashboard officiel de la **même version** que le contrôleur :
+
+```bash
+kubectl apply --namespace argo-rollouts \
+  -f https://raw.githubusercontent.com/argoproj/argo-rollouts/v1.10.1/manifests/dashboard-install.yaml
+kubectl set image deployment/argo-rollouts-dashboard \
+  argo-rollouts-dashboard=quay.io/argoproj/kubectl-argo-rollouts:v1.10.1 \
+  --namespace argo-rollouts
+kubectl rollout status deployment/argo-rollouts-dashboard \
+  --namespace argo-rollouts \
+  --timeout=300s
+```
+
+Le manifeste officiel crée le ServiceAccount, les permissions RBAC, le Deployment et le Service dashboard. Remplacer le Service par un Service `NodePort` sur le port TCP `31000` :
+
+```bash
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: argo-rollouts-dashboard
+  namespace: argo-rollouts
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: argo-rollouts-dashboard
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3100
+      targetPort: 3100
+      nodePort: 31000
+EOF
+```
+
+Vérifier que le pod est prêt et que le Service affiche `3100:31000/TCP` :
+
+```bash
+kubectl get pods,service --namespace argo-rollouts -o wide
+kubectl get endpoints argo-rollouts-dashboard --namespace argo-rollouts
+```
+
+Dans **Lightsail → Instance → Networking → Firewall**, ajouter une règle **Custom / TCP / 31000**. Restreindre la source à l'adresse IP publique d'administration (`<IP_ADMIN>/32`) ; ne pas choisir `Anywhere IPv4`. Ne pas ouvrir le port `3100`, qui est le port interne du Service.
+
+Depuis le poste autorisé, ouvrir `http://<IP_PUBLIQUE_DU_SERVEUR>:31000/rollouts`. Le NodePort est accessible sur l'adresse de chaque nœud, sous réserve des règles de pare-feu et du routage réseau.
+
+Pour désactiver l'accès NodePort, rétablir le Service en `ClusterIP` et supprimer la règle TCP 31000 du pare-feu Lightsail :
+
+```bash
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: argo-rollouts-dashboard
+  namespace: argo-rollouts
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: argo-rollouts-dashboard
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3100
+      targetPort: 3100
+EOF
+```
+
+Le dashboard déployé et ses permissions restent présents dans le cluster. Le tunnel SSH décrit plus haut lance une instance locale du dashboard avec le plugin CLI et n'a pas besoin de ces ressources.
 
 ## 4. Vérifier avec un Rollout Canary de démonstration
 
