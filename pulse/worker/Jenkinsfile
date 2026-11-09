@@ -39,7 +39,11 @@ pipeline {
                 }
 
                 steps {
-                    sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+                    dir('pulse/worker') {
+                        // sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+                        // -B option est utilisé pour exécuter Maven en mode batch, ce qui est utile dans les environnements CI/CD pour éviter les invites interactives.
+                        sh 'mvn -B org.pitest:pitest-maven:mutationCoverage'
+                    }
                 }
 
                 post {
