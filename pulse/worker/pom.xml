@@ -116,7 +116,7 @@
             <param>HTML</param>
             <param>XML</param>
           </outputFormats>
-          <mutationThreshold>70</mutationThreshold>
+          <withHistory>false</withHistory>
         </configuration>
       </plugin>
     </plugins>
