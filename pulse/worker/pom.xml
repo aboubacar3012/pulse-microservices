@@ -114,7 +114,6 @@
         <configuration>
           <outputFormats>
             <param>HTML</param>
-            <param>XML</param>
           </outputFormats>
           <withHistory>false</withHistory>
         </configuration>
