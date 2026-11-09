@@ -111,6 +111,12 @@
             <version>1.2.2</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <outputFormats>
+            <param>HTML</param>
+            <param>XML</param>
+          </outputFormats>
+        </configuration>
       </plugin>
     </plugins>
   </build>

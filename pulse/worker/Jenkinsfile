@@ -47,8 +47,10 @@ pipeline {
                 }
 
                 post {
-                    always {
-                        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+                    success {
+                        dir('pulse/worker') {
+                            pitmutation mutationStatsFile: 'target/pit-reports/**/mutations.xml'
+                        }
                     }
                 }
             }
@@ -110,21 +112,21 @@ pipeline {
         //     }
         // }
 
-        // stage('K8S Deployment - DEV') {
-        //     when {
-        //         anyOf {
-        //             changeset 'pulse/worker/**'
-        //             buildingTag()
-        //         }
-        //     }
-        //     steps {
-        //         withKubeConfig([credentialsId: 'kubeconfig']) {
-        //             dir('pulse/worker') {
-        //                 sh 'bash k8s.sh'
-        //                 sh 'bash k8s-rollout-status.sh'
-        //             }
-        //         }
-        //     }
-        // }
+    // stage('K8S Deployment - DEV') {
+    //     when {
+    //         anyOf {
+    //             changeset 'pulse/worker/**'
+    //             buildingTag()
+    //         }
+    //     }
+    //     steps {
+    //         withKubeConfig([credentialsId: 'kubeconfig']) {
+    //             dir('pulse/worker') {
+    //                 sh 'bash k8s.sh'
+    //                 sh 'bash k8s-rollout-status.sh'
+    //             }
+    //         }
+    //     }
+    // }
     }
 }
