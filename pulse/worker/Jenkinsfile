@@ -50,6 +50,9 @@ pipeline {
                 always {
                     dir('pulse/worker') {
                         publishHTML(target: [
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
                             reportDir: 'target/pit-reports',
                             reportFiles: '**/index.html',
                             reportName: 'PIT Mutation Report'
