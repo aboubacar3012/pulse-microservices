@@ -4,7 +4,7 @@ pipeline {
         environment {
             DOCKER_REGISTRY = 'aboubacar99'
             APP_NAME        = 'pulse-worker'
-            DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${date +%Y%m%d%H%M%S}-${GIT_COMMIT}"
+            DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}-${GIT_COMMIT}"
         }
 
     stages {
