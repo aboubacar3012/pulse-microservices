@@ -30,30 +30,35 @@ pipeline {
             }
         }
 
-            stage('Mutation Tests - PIT') {
-                when {
-                    anyOf {
-                        changeset 'pulse/worker/**'
-                        buildingTag()
-                    }
+        stage('Mutation Tests - PIT') {
+            when {
+                anyOf {
+                    changeset 'pulse/worker/**'
+                    buildingTag()
                 }
+            }
 
-                steps {
+            steps {
+                dir('pulse/worker') {
+                    // sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+                    // -B option est utilisé pour exécuter Maven en mode batch, ce qui est utile dans les environnements CI/CD pour éviter les invites interactives.
+                    sh 'mvn -B org.pitest:pitest-maven:mutationCoverage -DwithHistory=false'
+                }
+            }
+
+            post {
+                success {
                     dir('pulse/worker') {
-                        // sh 'mvn org.pitest:pitest-maven:mutationCoverage'
-                        // -B option est utilisé pour exécuter Maven en mode batch, ce qui est utile dans les environnements CI/CD pour éviter les invites interactives.
-                        sh 'mvn -B org.pitest:pitest-maven:mutationCoverage -DwithHistory=false'
-                    }
-                }
-
-                post {
-                    success {
-                        dir('pulse/worker') {
-                            pitmutation mutationStatsFile: 'target/pit-reports/**/mutations.xml'
-                        }
+                        pitmutation mutationStatsFile: 'target/pit-reports/**/mutations.xml'
+                        publishHTML(target: [
+                            reportDir: 'target/pit-reports',
+                            reportFiles: '**/index.html',
+                            reportName: 'PIT Mutation Report'
+                        ])
                     }
                 }
             }
+        }
 
         stage('SonarQube - Maven') {
             when {
@@ -112,21 +117,21 @@ pipeline {
         //     }
         // }
 
-    // stage('K8S Deployment - DEV') {
-    //     when {
-    //         anyOf {
-    //             changeset 'pulse/worker/**'
-    //             buildingTag()
-    //         }
-    //     }
-    //     steps {
-    //         withKubeConfig([credentialsId: 'kubeconfig']) {
-    //             dir('pulse/worker') {
-    //                 sh 'bash k8s.sh'
-    //                 sh 'bash k8s-rollout-status.sh'
-    //             }
-    //         }
-    //     }
-    // }
+        // stage('K8S Deployment - DEV') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/worker/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         withKubeConfig([credentialsId: 'kubeconfig']) {
+        //             dir('pulse/worker') {
+        //                 sh 'bash k8s.sh'
+        //                 sh 'bash k8s-rollout-status.sh'
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
