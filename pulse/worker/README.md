@@ -77,6 +77,14 @@ JaCoCo impose au minimum **89 % de couverture des lignes** sur l’ensemble du c
 
 Rapport HTML après les tests : `target/site/jacoco/index.html`.
 
+### Tests de mutation avec PIT
+
+```bash
+mvn -B org.pitest:pitest-maven:mutationCoverage
+```
+
+Le build échoue si moins de **70 %** des mutations sont tuées. PIT produit les rapports HTML et XML dans `target/pit-reports/`. Jenkins archive ces rapports et affiche le ratio dans le journal ainsi que dans la description du build.
+
 ## Packager et exécuter le JAR
 
 ```bash
