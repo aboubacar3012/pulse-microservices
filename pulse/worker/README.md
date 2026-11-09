@@ -2,7 +2,7 @@
 
 Worker de **Pulse** développé avec Java 21 et Spring Boot. Il consomme les votes de la liste Redis `votes` et les enregistre dans Postgres.
 
-## Fonctionnement
+## Fonctionnement updated
 
 - Blocage sur `BRPOP` de la file `votes` (attente de 5 secondes).
 - Validation du JSON et de l’outil (`docker`, `ansible`, `kubernetes`, `linux`, `git`, `terraform`, `jenkins`, `aws`).
