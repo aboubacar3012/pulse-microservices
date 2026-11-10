@@ -77,7 +77,7 @@ JaCoCo impose au minimum **89 % de couverture des lignes** sur l’ensemble du c
 
 Rapport HTML après les tests : `target/site/jacoco/index.html`.
 
-### Tests de mutation avec PIT
+### Tests de mutation avec PIT updated
 
 ```bash
 mvn -B org.pitest:pitest-maven:mutationCoverage
