@@ -99,7 +99,7 @@ pipeline {
                             sh 'mkdir -p "$OWASP_DATA_DIR"'
                             catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                                 withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                    sh 'mvn dependency-check:check -Ddependency-check.suppressionFiles=dependency-check-suppression.xml -Ddata.directory="$OWASP_DATA_DIR" -DnvdApiKey="$NVD_API_KEY"'
+                                    sh 'mvn dependency-check:check -Ddependency-check.suppressionFiles=dependency-check-suppression.xml -Ddata.directory="$OWASP_DATA_DIR" -Dformats=XML,HTML -DnvdApiKey="$NVD_API_KEY"'
                                 }
                             }
                         }
@@ -115,10 +115,7 @@ pipeline {
 
             post {
                 always {
-                    // Rapport XML → plugin OWASP Dependency-Check
-                    // dependencyCheckPublisher(
-                    //         pattern: 'pulse/worker/target/dependency-check-report.html'
-                    //     )
+                    dependencyCheckPublisher pattern: 'pulse/worker/target/dependency-check-report.xml'
                     // Optionnel : aussi le HTML
                     publishHTML target: [
                         allowMissing: true,
@@ -126,7 +123,7 @@ pipeline {
                         keepAll: true,
                         reportDir: 'pulse/worker/target',
                         reportFiles: 'dependency-check-report.html',
-                        reportName: 'Dependency-Check'
+                        reportName: 'OWASP Dependency-Check'
                     ]
                 }
             }
