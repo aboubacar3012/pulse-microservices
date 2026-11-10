@@ -113,12 +113,6 @@ pipeline {
 
             post {
                 always {
-                    dependencyCheckPublisher pattern: 'pulse/worker/target/dependency-check-report.xml'
-                }
-            }
-
-            post {
-                always {
                     // Rapport XML → plugin OWASP Dependency-Check
                     // dependencyCheckPublisher(
                     //         pattern: 'pulse/api/owasp/dependency-check-report.xml'
