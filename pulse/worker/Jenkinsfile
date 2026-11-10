@@ -96,7 +96,7 @@ pipeline {
                     'Dependency Scan': {
                         dir('pulse/worker') {
                             withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                sh 'mvn dependency-check:check'
+                                sh 'mvn dependency-check:check -Ddependency-check.suppressionFiles=dependency-check-suppression.xml -Dnvd.apiKey=$NVD_API_KEY'
                             }
                         }
                     },
