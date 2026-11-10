@@ -5,6 +5,7 @@ pipeline {
             DOCKER_REGISTRY = 'aboubacar99'
             APP_NAME        = 'pulse-worker'
             DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}-${GIT_COMMIT}"
+            OWASP_DATA_DIR  = '/var/lib/jenkins/dependency-check-data'
         }
 
     stages {
@@ -95,8 +96,9 @@ pipeline {
                 parallel(
                     'Dependency Scan': {
                         dir('pulse/worker') {
+                            sh 'mkdir -p "$OWASP_DATA_DIR"'
                             withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                sh 'mvn dependency-check:check -Ddependency-check.suppressionFiles=dependency-check-suppression.xml -DnvdApiKey=$NVD_API_KEY'
+                                sh 'mvn dependency-check:check -Ddependency-check.suppressionFiles=dependency-check-suppression.xml -Ddata.directory="$OWASP_DATA_DIR" -DnvdApiKey="$NVD_API_KEY"'
                             }
                         }
                     },
