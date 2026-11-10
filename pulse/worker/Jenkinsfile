@@ -124,7 +124,7 @@ pipeline {
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'pulse/worker/owasp',
+                        reportDir: 'pulse/worker/target',
                         reportFiles: 'dependency-check-report.html',
                         reportName: 'OWASP Dependency-Check'
                     ]
