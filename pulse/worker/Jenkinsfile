@@ -117,14 +117,14 @@ pipeline {
                 always {
                     // Rapport XML → plugin OWASP Dependency-Check
                     // dependencyCheckPublisher(
-                    //         pattern: 'pulse/api/owasp/dependency-check-report.xml'
+                    //         pattern: 'pulse/worker/owasp/dependency-check-report.xml'
                     //     )
                     // Optionnel : aussi le HTML
                     publishHTML target: [
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'pulse/api/owasp',
+                        reportDir: 'pulse/worker/owasp',
                         reportFiles: 'dependency-check-report.html',
                         reportName: 'OWASP Dependency-Check'
                     ]
