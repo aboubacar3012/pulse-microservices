@@ -2,6 +2,7 @@ pipeline {
     agent any
 
         environment {
+            BASE_IMAGE      = 'node:20-alpine'
             DOCKER_REGISTRY = 'aboubacar99'
             APP_NAME        = 'pulse-worker'
             DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}-${GIT_COMMIT}"
@@ -104,9 +105,13 @@ pipeline {
                             }
                         }
                     },
-              // 'Trivy Scan': {
-              //     sh 'bash trivy-docker-image-scan.sh'
-              // },
+                    'Trivy Scan': {
+                        dir('pulse/worker') {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                                sh "bash trivy-docker-image-scan.sh ${BASE_IMAGE}"
+                            }
+                        }
+                    },
               // 'OPA Conftest': {
               //     sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
               // }
