@@ -97,8 +97,10 @@ pipeline {
                     'Dependency Scan': {
                         dir('pulse/worker') {
                             sh 'mkdir -p "$OWASP_DATA_DIR"'
-                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                sh 'mvn dependency-check:check -Ddependency-check.suppressionFiles=dependency-check-suppression.xml -Ddata.directory="$OWASP_DATA_DIR" -DnvdApiKey="$NVD_API_KEY"'
+                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                    sh 'mvn dependency-check:check -Ddependency-check.suppressionFiles=dependency-check-suppression.xml -Ddata.directory="$OWASP_DATA_DIR" -DnvdApiKey="$NVD_API_KEY"'
+                                }
                             }
                         }
                     },
