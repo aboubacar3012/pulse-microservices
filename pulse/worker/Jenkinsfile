@@ -85,7 +85,7 @@ pipeline {
         //     }
         // }
 
-        stage('Vulnerability Scan - Docker') {
+        stage('Vulnerability Scan - Dependency-Check') {
             when {
                 anyOf {
                     changeset 'pulse/worker/**'
@@ -116,18 +116,18 @@ pipeline {
             post {
                 always {
                     // Rapport XML → plugin OWASP Dependency-Check
-                    dependencyCheckPublisher(
-                            pattern: 'pulse/worker/target/dependency-check-report.html'
-                        )
+                    // dependencyCheckPublisher(
+                    //         pattern: 'pulse/worker/target/dependency-check-report.html'
+                    //     )
                     // Optionnel : aussi le HTML
-                    // publishHTML target: [
-                    //     allowMissing: true,
-                    //     alwaysLinkToLastBuild: true,
-                    //     keepAll: true,
-                    //     reportDir: 'pulse/worker/target',
-                    //     reportFiles: 'dependency-check-report.html',
-                    //     reportName: 'OWASP Dependency-Check'
-                    // ]
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'pulse/worker/target',
+                        reportFiles: 'dependency-check-report.html',
+                        reportName: 'Dependency-Check'
+                    ]
                 }
             }
         }
