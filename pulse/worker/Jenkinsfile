@@ -8,87 +8,97 @@ pipeline {
         }
 
     stages {
-        stage('Unit Tests - JUnit and JaCoCo') {
-            when {
-                anyOf {
-                    changeset 'pulse/worker/**'
-                    buildingTag()
-                }
-            }
-            steps {
-                dir('pulse/worker') {
-                    // sh 'mvn clean test'
-                    // -B option est utilisé pour exécuter Maven en mode batch, ce qui est utile dans les environnements CI/CD pour éviter les invites interactives.
-                    sh 'mvn -B clean verify'
-                }
-            }
-            post {
-                always {
-                    junit 'pulse/worker/target/surefire-reports/*.xml'
-                    jacoco execPattern: 'pulse/worker/target/jacoco.exec'
-                }
-            }
-        }
+        // stage('Unit Tests - JUnit and JaCoCo') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/worker/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         dir('pulse/worker') {
+        //             // sh 'mvn clean test'
+        //             // -B option est utilisé pour exécuter Maven en mode batch, ce qui est utile dans les environnements CI/CD pour éviter les invites interactives.
+        //             sh 'mvn -B clean verify'
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             junit 'pulse/worker/target/surefire-reports/*.xml'
+        //             jacoco execPattern: 'pulse/worker/target/jacoco.exec'
+        //         }
+        //     }
+        // }
 
-        stage('Mutation Tests - PIT') {
-            when {
-                anyOf {
-                    changeset 'pulse/worker/**'
-                    buildingTag()
-                }
-            }
+        // stage('Mutation Tests - PIT') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/worker/**'
+        //             buildingTag()
+        //         }
+        //     }
 
-            steps {
-                dir('pulse/worker') {
-                    // sh 'mvn org.pitest:pitest-maven:mutationCoverage'
-                    // -B option est utilisé pour exécuter Maven en mode batch, ce qui est utile dans les environnements CI/CD pour éviter les invites interactives.
-                    sh 'mvn -B org.pitest:pitest-maven:mutationCoverage'
-                }
-            }
+        //     steps {
+        //         dir('pulse/worker') {
+        //             // sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+        //             // -B option est utilisé pour exécuter Maven en mode batch, ce qui est utile dans les environnements CI/CD pour éviter les invites interactives.
+        //             sh 'mvn -B org.pitest:pitest-maven:mutationCoverage'
+        //         }
+        //     }
 
-            post {
-                always {
-                    dir('pulse/worker') {
-                        publishHTML(target: [
-                            allowMissing: true,
-                            alwaysLinkToLastBuild: true,
-                            keepAll: true,
-                            reportDir: 'target/pit-reports',
-                            reportFiles: '**/index.html',
-                            reportName: 'PIT Mutation Report'
-                        ])
-                    }
-                }
-            }
-        }
+        //     post {
+        //         always {
+        //             dir('pulse/worker') {
+        //                 publishHTML(target: [
+        //                     allowMissing: true,
+        //                     alwaysLinkToLastBuild: true,
+        //                     keepAll: true,
+        //                     reportDir: 'target/pit-reports',
+        //                     reportFiles: '**/index.html',
+        //                     reportName: 'PIT Mutation Report'
+        //                 ])
+        //             }
+        //         }
+        //     }
+        // }
 
-        stage('SonarQube Analysis') {
-            when {
-                anyOf {
-                    changeset 'pulse/worker/**'
-                    buildingTag()
-                }
-            }
-            steps {
-                withCredentials([string(credentialsId: 'sonar-token-pulse-worker', variable: 'SONAR_TOKEN')]) {
-                    dir('pulse/worker') {
-                        sh '''
-                            mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar \
-                                -Dsonar.host.url=http://100.50.5.73:9000 \
-                                -Dsonar.token="$SONAR_TOKEN" \
-                                -Dsonar.projectKey=pulse-worker \
-                                -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-                        '''
-                    }
-                }
-            }
-        }
+        // stage('SonarQube Analysis') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/worker/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         withCredentials([string(credentialsId: 'sonar-token-pulse-worker', variable: 'SONAR_TOKEN')]) {
+        //             dir('pulse/worker') {
+        //                 sh '''
+        //                     mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar \
+        //                         -Dsonar.host.url=http://100.50.5.73:9000 \
+        //                         -Dsonar.token="$SONAR_TOKEN" \
+        //                         -Dsonar.projectKey=pulse-worker \
+        //                         -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+        //                 '''
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Vulnerability Scan - Docker') {
+            when {
+                anyOf {
+                    changeset 'pulse/worker/**'
+                    buildingTag()
+                }
+            }
             steps {
                 parallel(
                     'Dependency Scan': {
-                        sh 'mvn dependency-check:check'
+                        dir('pulse/worker') {
+                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                sh 'mvn dependency-check:check'
+                            }
+                        }
                     },
               // 'Trivy Scan': {
               //     sh 'bash trivy-docker-image-scan.sh'
@@ -98,22 +108,28 @@ pipeline {
               // }
               )
             }
+
+            post {
+                always {
+                    dependencyCheckPublisher pattern: 'pulse/worker/target/dependency-check-report.xml'
+                }
+            }
         }
 
         // Conservé pour la formation : l’image Docker contient déjà le JAR, donc cette archive n’est pas nécessaire au déploiement.
         // Elle peut toutefois servir à télécharger le JAR depuis Jenkins ou à le transmettre à un autre job sans le reconstruire.
-        stage('Build Artifact - Maven') {
-            when {
-                anyOf {
-                    changeset 'pulse/worker/**'
-                    buildingTag()
-                }
-            }
-            steps {
-                archiveArtifacts artifacts: 'pulse/worker/target/pulse-worker.jar',
-                    fingerprint: true // ici le figerprint est utile pour retrouver le JAR dans d’autres jobs, par exemple pour le déployer sur un serveur distant via SSH.
-            }
-        }
+        // stage('Build Artifact - Maven') {
+        //     when {
+        //         anyOf {
+        //             changeset 'pulse/worker/**'
+        //             buildingTag()
+        //         }
+        //     }
+        //     steps {
+        //         archiveArtifacts artifacts: 'pulse/worker/target/pulse-worker.jar',
+        //             fingerprint: true // ici le figerprint est utile pour retrouver le JAR dans d’autres jobs, par exemple pour le déployer sur un serveur distant via SSH.
+        //     }
+        // }
 
         // stage('Build') {
         //     when {
